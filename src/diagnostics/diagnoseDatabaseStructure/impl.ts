@@ -26,15 +26,14 @@ const getCollections = (db: Database) =>
     return {
       name: table,
       // $FlowFixMe
-      parents: (Object.entries(collection.modelClass.associations) as [
-          string,
-          any
-        ][])
-          .filter(([, association]) => association.type === 'belongs_to')
-          .map(([parentTable, association]): [string, string] => [
-            parentTable,
-            association.key,
-          ]),
+      parents: (
+        Object.entries(collection.modelClass.associations) as [string, any][]
+      )
+        .filter(([, association]) => association.type === 'belongs_to')
+        .map(([parentTable, association]): [string, string] => [
+          parentTable,
+          association.key,
+        ]),
     }
   })
 

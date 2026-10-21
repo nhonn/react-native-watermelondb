@@ -13,23 +13,22 @@ export default function lazy(
   key: string,
   descriptor?: Descriptor
 ): any {
-  const { configurable, enumerable, initializer, value } = descriptor as Descriptor
+  const { configurable, enumerable, initializer, value } =
+    descriptor as Descriptor
   return {
     configurable,
     enumerable,
 
     get(this: any): any {
-      const that = this
-
       // This happens if someone accesses the
       // property directly on the prototype
-      if (that === target) {
+      if (this === target) {
         return undefined
       }
 
-      const returnValue = initializer ? initializer.call(that) : value
+      const returnValue = initializer ? initializer.call(this) : value
       // Next time this property is called, skip the decorator, and just return the precomputed value
-      Object.defineProperty(that, key, {
+      Object.defineProperty(this, key, {
         configurable,
         enumerable,
         writable: true,

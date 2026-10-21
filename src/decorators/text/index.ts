@@ -15,29 +15,30 @@ import '../../Schema'
 //   @text(Column.name) name: string
 //   @text('full_description') fullDescription: string
 const text: Decorator = makeDecorator(
-  (columnName: ColumnName) => (
-    target: Record<string, any>,
-    key: string,
-    descriptor: Record<string, any>
-  ) => {
-    ensureDecoratorUsedProperly(columnName, target, key, descriptor)
-    return {
-      configurable: true,
-      enumerable: true,
+  (columnName: ColumnName) =>
+    (
+      target: Record<string, any>,
+      key: string,
+      descriptor: Record<string, any>
+    ) => {
+      ensureDecoratorUsedProperly(columnName, target, key, descriptor)
+      return {
+        configurable: true,
+        enumerable: true,
 
-      get(): string | null | undefined {
-        // $FlowFixMe
-        return this.asModel._getRaw(columnName)
-      },
+        get(): string | null | undefined {
+          // $FlowFixMe
+          return this.asModel._getRaw(columnName)
+        },
 
-      set(value: string | null | undefined): void {
-        // $FlowFixMe
-        this.asModel._setRaw(
-          columnName,
-          typeof value === 'string' ? value.trim() : null
-        )
-      },
+        set(value: string | null | undefined): void {
+          // $FlowFixMe
+          this.asModel._setRaw(
+            columnName,
+            typeof value === 'string' ? value.trim() : null
+          )
+        },
+      }
     }
-  }
 )
 export default text

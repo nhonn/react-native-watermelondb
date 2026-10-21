@@ -16,46 +16,47 @@ import { ensureDecoratorUsedProperly } from '../common'
 const cache = new Map<number, Date>()
 onLowMemory(() => cache.clear())
 const dateDecorator: Decorator = makeDecorator(
-  (columnName: ColumnName) => (
-    target: Record<string, any>,
-    key: string,
-    descriptor: Record<string, any>
-  ) => {
-    ensureDecoratorUsedProperly(columnName, target, key, descriptor)
-    return {
-      configurable: true,
-      enumerable: true,
+  (columnName: ColumnName) =>
+    (
+      target: Record<string, any>,
+      key: string,
+      descriptor: Record<string, any>
+    ) => {
+      ensureDecoratorUsedProperly(columnName, target, key, descriptor)
+      return {
+        configurable: true,
+        enumerable: true,
 
-      get(): Date | null | undefined {
-        // $FlowFixMe
-        const rawValue = this.asModel._getRaw(columnName)
+        get(): Date | null | undefined {
+          // $FlowFixMe
+          const rawValue = this.asModel._getRaw(columnName)
 
-        if (typeof rawValue === 'number') {
-          const cached = cache.get(rawValue)
+          if (typeof rawValue === 'number') {
+            const cached = cache.get(rawValue)
 
-          if (cached) {
-            return cached
+            if (cached) {
+              return cached
+            }
+
+            const date = new Date(rawValue)
+            cache.set(rawValue, date)
+            return date
           }
 
-          const date = new Date(rawValue)
-          cache.set(rawValue, date)
-          return date
-        }
+          return null
+        },
 
-        return null
-      },
+        set(date: Date | null | undefined): void {
+          const rawValue = date ? +new Date(date) : null
 
-      set(date: Date | null | undefined): void {
-        const rawValue = date ? +new Date(date) : null
+          if (rawValue && date) {
+            cache.set(rawValue, new Date(date))
+          }
 
-        if (rawValue && date) {
-          cache.set(rawValue, new Date(date))
-        }
-
-        // $FlowFixMe
-        this.asModel._setRaw(columnName, rawValue)
-      },
+          // $FlowFixMe
+          this.asModel._setRaw(columnName, rawValue)
+        },
+      }
     }
-  }
 )
 export default dateDecorator

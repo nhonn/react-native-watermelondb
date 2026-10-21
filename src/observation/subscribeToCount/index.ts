@@ -58,7 +58,7 @@ export default function subscribeToCount<Record extends Model>(
       const count = result.value
       const shouldEmit = count !== previousCount && !unsubscribed
       previousCount = count
-      shouldEmit && subscriber(count)
+      if (shouldEmit) subscriber(count)
     })
   }
 

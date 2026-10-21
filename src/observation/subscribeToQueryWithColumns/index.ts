@@ -29,10 +29,8 @@ const getRecordState: (arg0: Model, arg1: ColumnName[]) => RecordState = (
 }
 
 // Invariant: same length and order of keys!
-const recordStatesEqual: (
-  left: RecordState,
-  right: RecordState
-) => boolean = identicalArrays // Observes the given observable list of records, and in those records,
+const recordStatesEqual: (left: RecordState, right: RecordState) => boolean =
+  identicalArrays // Observes the given observable list of records, and in those records,
 // changes to given `rawFields`
 //
 // Emits a list of records when:
@@ -59,7 +57,7 @@ export default function subscribeToQueryWithColumns<Record extends Model>(
   const recordStates = new Map<RecordId, RecordState>()
 
   const emitCopy = (records: Array<Record>) => {
-    !unsubscribed && subscriber(records.slice(0))
+    if (!unsubscribed) subscriber(records.slice(0))
   }
 
   // NOTE:
@@ -167,7 +165,7 @@ export default function subscribeToQueryWithColumns<Record extends Model>(
         recordStates.set(newRecord.id, getRecordState(newRecord, columnNames))
       })
       // Emit
-      shouldEmit && emitCopy(records)
+      if (shouldEmit) emitCopy(records)
     }
   )
   return () => {

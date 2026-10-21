@@ -2537,37 +2537,37 @@ matchTest({
   skipMatcher: true,
   checkOrder: true,
 })
-export const naughtyMatchTests: any[] = naughtyStrings.map((naughtyString: string) => ({
-  name: naughtyString,
-  query: [Q.where('text1', naughtyString)],
-  matching: [
-    {
-      id: 'm1',
-      text1: naughtyString,
-    },
-  ],
-  nonMatching: [
-    {
-      id: 'n1',
-      text1: null,
-    },
-    {
-      id: 'n2',
-      text1: 'not-a-naughty-string',
-    },
-  ],
-}))
+export const naughtyMatchTests: any[] = naughtyStrings.map(
+  (naughtyString: string) => ({
+    name: naughtyString,
+    query: [Q.where('text1', naughtyString)],
+    matching: [
+      {
+        id: 'm1',
+        text1: naughtyString,
+      },
+    ],
+    nonMatching: [
+      {
+        id: 'n1',
+        text1: null,
+      },
+      {
+        id: 'n2',
+        text1: 'not-a-naughty-string',
+      },
+    ],
+  })
+)
 const joinTests: any[] = []
 
 function joinTest(options: {
   name: string
   query: QueryBuilders.Clause[]
   extraRecords: {
-    [key in
-      | 'projects'
-      | 'tag_assignments'
-      | 'teams'
-      | 'organizations']?: Array<{ id: string; [key: string]: any }>
+    [
+      key in 'projects' | 'tag_assignments' | 'teams' | 'organizations'
+    ]?: Array<{ id: string; [key: string]: any }>
   }
   matching: Array<{ id: string; [key: string]: any }>
   nonMatching: Array<{ id: string; [key: string]: any }>
@@ -3506,8 +3506,7 @@ joinTest({
   ],
 })
 joinTest({
-  name:
-    'can perform a JOIN query on has_many collection with column comparisons',
+  name: 'can perform a JOIN query on has_many collection with column comparisons',
   query: [
     Q.where('text1', 'val1'),
     Q.on('tag_assignments', 'num1', Q.gt(Q.column('num2'))),

@@ -8,8 +8,10 @@ import type {
   SQLiteValue,
 } from './SQLiteValue'
 
-export interface NativeDatabase
-  extends HybridObject<{ ios: 'c++'; android: 'c++' }> {
+export interface NativeDatabase extends HybridObject<{
+  ios: 'c++'
+  android: 'c++'
+}> {
   initialize(expectedVersion: number): Promise<InitializeResult>
   setUpWithSchema(schemaSql: string, schemaVersion: number): Promise<void>
   setUpWithMigrations(
@@ -24,7 +26,10 @@ export interface NativeDatabase
     args: SQLiteValue[]
   ): Promise<CachedRecord[]>
   queryIds(sql: string, args: SQLiteValue[]): Promise<string[]>
-  unsafeQueryRaw(sql: string, args: SQLiteValue[]): Promise<Record<string, SQLiteValue>[]>
+  unsafeQueryRaw(
+    sql: string,
+    args: SQLiteValue[]
+  ): Promise<Record<string, SQLiteValue>[]>
   count(sql: string, args: SQLiteValue[]): Promise<number>
   batch(operations: NativeBatchOperation[]): Promise<void>
   getLocal(key: string): Promise<LocalValue>

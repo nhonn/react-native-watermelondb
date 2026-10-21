@@ -1,4 +1,3 @@
-
 /* eslint-disable react/no-direct-mutation-state */
 
 /* eslint-disable react/sort-comp */
@@ -12,7 +11,11 @@ export interface ObservableConvertible<T> {
   observe(): Observable<T>
 }
 type ExtractObservableType<T> =
-  T extends Observable<infer U> ? U : T extends ObservableConvertible<infer U> ? U : T
+  T extends Observable<infer U>
+    ? U
+    : T extends ObservableConvertible<infer U>
+      ? U
+      : T
 
 export type ExtractedObservables<T> = {
   [K in keyof T]: ExtractObservableType<T[K]>
@@ -52,10 +55,11 @@ type GetProps<C> = C extends ComponentType<infer P> ? P : never
  * But any property required by the decorated component must be satisfied by the injected property.
  */
 type Shared<InjectedProps, DecorationTargetProps> = {
-  [P in Extract<
-    keyof InjectedProps,
-    keyof DecorationTargetProps
-  >]?: InjectedProps[P] extends DecorationTargetProps[P] ? DecorationTargetProps[P] : never
+  [
+    P in Extract<keyof InjectedProps, keyof DecorationTargetProps>
+  ]?: InjectedProps[P] extends DecorationTargetProps[P]
+    ? DecorationTargetProps[P]
+    : never
 }
 
 // Applies LibraryManagedAttributes (proper handling of defaultProps
@@ -73,12 +77,11 @@ type ConnectedComponent<C extends ComponentType<any>, P> = NamedExoticComponent<
 type InferableComponentEnhancer<TInjectedProps, TNeedsProps> = <
   C extends ComponentType<Matching<TInjectedProps, GetProps<C>>>,
 >(
-  component: C,
+  component: C
 ) => ConnectedComponent<
   C,
   Omit<GetProps<C>, keyof Shared<TInjectedProps, GetProps<C>>> & TNeedsProps
 >
-
 
 type TriggerProps<A> = (keyof A)[] | null
 type GetObservables<A, B> = (props: A) => B
@@ -153,7 +156,7 @@ const hasOwn = (obj: Record<string, any>, key: string): boolean => {
 
 class WithObservablesComponent<
   AddedValues extends any,
-  PropsInput extends {}
+  PropsInput extends {},
 > extends Component<
   any,
   {
@@ -304,7 +307,8 @@ class WithObservablesComponent<
         ? (this.triggerProps as string[]).join(',')
         : 'null'
       const renderedKeys = keys.join(', ')
-      ;(this.constructor as any).displayName = `withObservables[${renderedTriggerProps}] { ${renderedKeys} }`
+      ;(this.constructor as any).displayName =
+        `withObservables[${renderedTriggerProps}] { ${renderedKeys} }`
     }
 
     this._unsubscribe = unsubscribe
@@ -343,7 +347,7 @@ class WithObservablesComponent<
   }
 
   unsubscribe(): void {
-    this._unsubscribe && this._unsubscribe()
+    if (this._unsubscribe) this._unsubscribe()
     this.cancelPrefetchTimeout()
   }
 
@@ -431,7 +435,8 @@ function withObservables(
       const renderedTriggerProps = triggerProps
         ? (triggerProps as string[]).join(',')
         : 'null'
-      ;(ConcreteWithObservablesComponent as any).displayName = `withObservables[${renderedTriggerProps}]`
+      ;(ConcreteWithObservablesComponent as any).displayName =
+        `withObservables[${renderedTriggerProps}]`
     }
 
     return hoistNonReactStatics(ConcreteWithObservablesComponent, BaseComponent)

@@ -46,16 +46,20 @@ export default function fetchLocalChanges(
   db: Database
 ): Promise<SyncLocalChanges> {
   return db.read(async () => {
-    const changes = await allPromisesObj(
+    const changes = (await allPromisesObj(
       mapObj(fetchLocalChangesForCollection, db.collections.map) as Record<
         string,
         Promise<any>
       >
-    ) as Record<string, [SyncTableChangeSet, Model[]]>
+    )) as Record<string, [SyncTableChangeSet, Model[]]>
     // TODO: deep-freeze changes object (in dev mode only) to detect mutations (user bug)
     return {
-      changes: mapObj(([changeSet]: [SyncTableChangeSet]) => changeSet)(changes),
-      affectedRecords: unnest(values(changes).map(([, records]: any) => records)),
+      changes: mapObj(([changeSet]: [SyncTableChangeSet]) => changeSet)(
+        changes
+      ),
+      affectedRecords: unnest(
+        values(changes).map(([, records]: any) => records)
+      ),
     }
   }, 'sync-fetchLocalChanges')
 }

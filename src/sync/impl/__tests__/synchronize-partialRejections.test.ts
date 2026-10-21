@@ -18,9 +18,9 @@ describe('synchronize - partial push rejections', () => {
     await synchronize({
       database,
       pullChanges: jest.fn(emptyPull()),
-      pushChanges: (jest.fn(() => ({
+      pushChanges: jest.fn(() => ({
         experimentalRejectedIds: rejectedIds,
-      }))) as any,
+      })) as any,
       log,
     })
     expect((await fetchLocalChanges(database)).changes).toEqual(

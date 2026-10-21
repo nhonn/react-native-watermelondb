@@ -37,7 +37,7 @@ describe('synchronize - aborts', () => {
     await expectToRejectWithMessage(
       synchronize({
         database,
-        pullChanges: (jest.fn(async () => {
+        pullChanges: jest.fn(async () => {
           await database.write(() => database.unsafeResetDatabase())
           return {
             changes: makeChangeSet({
@@ -52,7 +52,7 @@ describe('synchronize - aborts', () => {
             }),
             timestamp: 1500,
           }
-        })) as any,
+        }) as any,
         pushChanges,
       }),
       'database was reset'
@@ -81,7 +81,8 @@ describe('synchronize - aborts', () => {
           }),
           timestamp: 1500,
         }),
-        pushChanges: (() => database.write(() => database.unsafeResetDatabase())) as any,
+        pushChanges: (() =>
+          database.write(() => database.unsafeResetDatabase())) as any,
       }),
       'database was reset'
     )

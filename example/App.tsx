@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import { Database, Model, appSchema, tableSchema } from 'react-native-watermelondb'
+import {
+  Database,
+  Model,
+  appSchema,
+  tableSchema,
+} from 'react-native-watermelondb'
 import SQLiteAdapter from 'react-native-watermelondb/adapters/sqlite'
 
 const schema = appSchema({

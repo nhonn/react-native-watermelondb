@@ -13,7 +13,11 @@ class NodeDispatcher implements SqliteDispatcher {
     this._db = new NodeDatabase(path, usesExclusiveLocking)
   }
 
-  call(name: SqliteDispatcherMethod, args: any[], callback: ResultCallback<any>): void {
+  call(
+    name: SqliteDispatcherMethod,
+    args: any[],
+    callback: ResultCallback<any>
+  ): void {
     ;(this._db[name] as (...a: any[]) => Promise<unknown>)(...args).then(
       (value) => callback({ value }),
       (error) => callback({ error: new Error(error?.message) })

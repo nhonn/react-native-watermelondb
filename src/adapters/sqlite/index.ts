@@ -122,32 +122,28 @@ export default class SQLiteAdapter implements DatabaseAdapter {
     // we're good. If not, we try again, this time sending the compiled schema or a migration set
     // This is to speed up the launch (less to do and pass through bridge), and avoid repeating
     // migration logic inside native code
-    this._dispatcher.call(
-      'initialize',
-      [this.schema.version],
-      (result) => {
-        if (result.error) {
-          callback(result)
-          return
-        }
-
-        const status = result.value
-
-        if (status.code === 'schema_needed') {
-          this._setUpWithSchema(callback)
-        } else if (status.code === 'migrations_needed') {
-          this._setUpWithMigrations(status.databaseVersion, callback)
-        } else if (status.code !== 'ok') {
-          callback({
-            error: new Error('Invalid database initialization status'),
-          })
-        } else {
-          callback({
-            value: undefined,
-          })
-        }
+    this._dispatcher.call('initialize', [this.schema.version], (result) => {
+      if (result.error) {
+        callback(result)
+        return
       }
-    )
+
+      const status = result.value
+
+      if (status.code === 'schema_needed') {
+        this._setUpWithSchema(callback)
+      } else if (status.code === 'migrations_needed') {
+        this._setUpWithMigrations(status.databaseVersion, callback)
+      } else if (status.code !== 'ok') {
+        callback({
+          error: new Error('Invalid database initialization status'),
+        })
+      } else {
+        callback({
+          value: undefined,
+        })
+      }
+    })
   }
 
   _setUpWithMigrations(
@@ -370,11 +366,7 @@ export default class SQLiteAdapter implements DatabaseAdapter {
 
       this._call('batch', [batchOperations], callback)
     } else if (sqlString) {
-      this._call(
-        'unsafeExecuteMultiple',
-        [sqlString],
-        callback
-      )
+      this._call('unsafeExecuteMultiple', [sqlString], callback)
     }
   }
 

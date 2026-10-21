@@ -44,7 +44,11 @@ export const getRaw = (collection: any, id: any) =>
     (record: any) => record._raw,
     () => null
   )
-export const expectSyncedAndMatches = async (collection: any, id: any, match: any) =>
+export const expectSyncedAndMatches = async (
+  collection: any,
+  id: any,
+  match: any
+) =>
   expect(await getRaw(collection, id)).toMatchObject({
     _status: 'synced',
     _changed: '',
@@ -195,7 +199,9 @@ export const makeLocalChanges = (database: any) =>
 
     return records
   })
-export const emptyPull = (timestamp = 1500) => async () => ({
-  changes: emptyChangeSet,
-  timestamp,
-})
+export const emptyPull =
+  (timestamp = 1500) =>
+  async () => ({
+    changes: emptyChangeSet,
+    timestamp,
+  })

@@ -55,6 +55,6 @@ const enhance: HOC<any, InitialProps> = compose(
     ({ observables }: InitialProps) => observables as any
   )
 )
-export default (enhance(WithObservables) as any) as <T>(
+export default enhance(WithObservables) as any as <T>(
   arg0: ExportProps<T>
 ) => React.ReactNode

@@ -72,6 +72,6 @@ export default function subscribeToSimpleQuery<Record extends Model>(
 
   return () => {
     unsubscribed = true
-    unsubscribe && unsubscribe()
+    if (unsubscribe) unsubscribe()
   }
 }

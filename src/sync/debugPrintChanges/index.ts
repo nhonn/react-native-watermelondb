@@ -8,10 +8,7 @@ if (process.env.NODE_ENV === 'production') {
 console.warn(
   'WARNING: DO NOT commit import of react-native-watermelondb/sync/debugPrintChanges!'
 )
-export default function debugPrintChanges(
-  changes: any,
-  isPush: boolean
-): void {
+export default function debugPrintChanges(changes: any, isPush: boolean): void {
   if (process.env.NODE_ENV === 'production') {
     return
   }
@@ -22,14 +19,15 @@ export default function debugPrintChanges(
   console.log(
     '##                                                                    ##'
   )
-  isPush &&
+  if (isPush) {
     console.log(
       '##                         PUSHING CHANGES                            ##'
     )
-  !isPush &&
+  } else {
     console.log(
       '##                             PULLING                                ##'
     )
+  }
   console.log(
     '##                                                                    ##'
   )

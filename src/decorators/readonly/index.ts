@@ -4,28 +4,29 @@ import invariant from '../../utils/common/invariant'
 // Marks a field as non-writable (throws an error when attempting to set a new value)
 // When using multiple decorators, remember to mark as @readonly *last* (leftmost)
 const readonly: Decorator = makeDecorator(
-  () => (
-    target: Record<string, any>,
-    key: string,
-    descriptor: Record<string, any>
-  ) => {
-    // Set a new setter on getter/setter fields
-    if (descriptor.get || descriptor.set) {
-      return {
-        ...descriptor,
+  () =>
+    (
+      target: Record<string, any>,
+      key: string,
+      descriptor: Record<string, any>
+    ) => {
+      // Set a new setter on getter/setter fields
+      if (descriptor.get || descriptor.set) {
+        return {
+          ...descriptor,
 
-        set(): void {
-          invariant(
-            false,
-            `Attempt to set new value on a property ${target.constructor.name}.prototype.${key} marked as @readonly`
-          )
-        },
+          set(): void {
+            invariant(
+              false,
+              `Attempt to set new value on a property ${target.constructor.name}.prototype.${key} marked as @readonly`
+            )
+          },
+        }
       }
-    }
 
-    // Mark as writable=false for simple fields
-    descriptor.writable = false
-    return descriptor
-  }
+      // Mark as writable=false for simple fields
+      descriptor.writable = false
+      return descriptor
+    }
 )
 export default readonly

@@ -1,12 +1,12 @@
-const path = require('path');
-const pak = require('../package.json');
+const path = require('path')
+const pak = require('../package.json')
 
-module.exports = api => {
-  api.cache(true);
+module.exports = (api) => {
+  api.cache(true)
   return {
     presets: ['module:@react-native/babel-preset'],
     plugins: [
-      ["@babel/plugin-proposal-decorators", { legacy: true }],
+      ['@babel/plugin-proposal-decorators', { legacy: true }],
       [
         'module-resolver',
         {
@@ -17,5 +17,5 @@ module.exports = api => {
         },
       ],
     ],
-  };
-};
+  }
+}

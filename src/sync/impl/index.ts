@@ -12,7 +12,12 @@ const lastPulledSchemaVersionKey = '__watermelon_last_pulled_schema_version'
 export async function getLastPulledAt(
   database: Database
 ): Promise<Timestamp | null | undefined> {
-  return parseInt((await database.adapter.getLocal(lastPulledAtKey)) as string, 10) || null
+  return (
+    parseInt(
+      (await database.adapter.getLocal(lastPulledAtKey)) as string,
+      10
+    ) || null
+  )
 }
 export async function setLastPulledAt(
   database: Database,
@@ -35,8 +40,7 @@ export async function getLastPulledSchemaVersion(
     parseInt(
       (await database.adapter.getLocal(lastPulledSchemaVersionKey)) as string,
       10
-    ) ||
-    null
+    ) || null
   )
 }
 export async function setLastPulledSchemaVersion(
@@ -59,7 +63,7 @@ export async function getMigrationInfo(
   const isFirstSync = !lastPulledAt
   const schemaVersion = database.schema.version
   const lastPulledSchemaVersion = await getLastPulledSchemaVersion(database)
-  log && (log.lastPulledSchemaVersion = lastPulledSchemaVersion)
+  if (log) log.lastPulledSchemaVersion = lastPulledSchemaVersion
   const areMigrationsEnabled = !!migrationsEnabledAtVersion
   const { migrations } = database.adapter
 
@@ -87,11 +91,12 @@ export async function getMigrationInfo(
       migrationsEnabledAtVersion >= migrations.minVersion,
       `[Sync] migrationsEnabledAtVersion is too low - not possible to migrate from schema version ${migrationsEnabledAtVersion}`
     )
-    lastPulledSchemaVersion &&
+    if (lastPulledSchemaVersion) {
       invariant(
         lastPulledSchemaVersion <= schemaVersion,
         `[Sync] Last synced schema version (${lastPulledSchemaVersion}) is greater than current schema version (${schemaVersion}). This indicates programmer error`
       )
+    }
   }
 
   const migrateFrom = lastPulledSchemaVersion || migrationsEnabledAtVersion || 0
@@ -101,7 +106,7 @@ export async function getMigrationInfo(
     migrations && shouldMigrate
       ? getSyncChanges(migrations, migrateFrom, schemaVersion)
       : null
-  log && (log.migration = migration)
+  if (log) log.migration = migration
 
   if (migration) {
     logger.log(

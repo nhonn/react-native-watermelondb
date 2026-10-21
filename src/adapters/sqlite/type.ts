@@ -38,7 +38,7 @@ export type NativeBridgeBatchOperation = [
   NativeBridgeBatchOperationCacheBehavior,
   TableName<any> | null, // table to add/remove from cache
   SQL,
-  Array<SQLiteArg[]>
+  Array<SQLiteArg[]>,
 ]
 export type InitializeStatus =
   | {

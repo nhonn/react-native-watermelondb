@@ -15,18 +15,16 @@ import type Query from '../../Query'
 const children: Decorator = makeDecorator(
   (childTable: TableName<any>) => () => ({
     get(): Query<Model> {
-      // $FlowFixMe
-      const that = this
       // Use cached Query if possible
-      that._childrenQueryCache = that._childrenQueryCache || {}
-      const cachedQuery = that._childrenQueryCache[childTable]
+      this._childrenQueryCache = this._childrenQueryCache || {}
+      const cachedQuery = this._childrenQueryCache[childTable]
 
       if (cachedQuery) {
         return cachedQuery
       }
 
       // Cache new Query
-      const model: Model = that.asModel
+      const model: Model = this.asModel
       const childCollection = model.collections.get(childTable)
       const association = (model.constructor as any).associations[childTable]
       invariant(
@@ -36,7 +34,7 @@ const children: Decorator = makeDecorator(
       const query = childCollection.query(
         Q.where(association.foreignKey, model.id)
       )
-      that._childrenQueryCache[childTable] = query
+      this._childrenQueryCache[childTable] = query
       return query
     },
 

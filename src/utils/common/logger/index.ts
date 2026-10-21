@@ -8,19 +8,19 @@ class Logger {
   silent: boolean = false
 
   debug(...messages: any[]): void {
-    !this.silent && console.debug(...formatMessages(messages))
+    if (!this.silent) console.debug(...formatMessages(messages))
   }
 
   log(...messages: any[]): void {
-    !this.silent && console.log(...formatMessages(messages))
+    if (!this.silent) console.log(...formatMessages(messages))
   }
 
   warn(...messages: any[]): void {
-    !this.silent && console.warn(...formatMessages(messages))
+    if (!this.silent) console.warn(...formatMessages(messages))
   }
 
   error(...messages: any[]): void {
-    !this.silent && console.error(...formatMessages(messages))
+    if (!this.silent) console.error(...formatMessages(messages))
   }
 
   silence(): void {

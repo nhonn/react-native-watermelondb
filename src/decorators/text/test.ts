@@ -29,7 +29,8 @@ describe('decorators/text', () => {
       {
         schema,
       } as any,
-      {} as any)
+      {} as any
+    )
     model._isEditing = true
     model.string = '   val2  '
     expect(model.string).toBe('val2')
@@ -39,7 +40,8 @@ describe('decorators/text', () => {
       {
         schema,
       } as any,
-      {} as any)
+      {} as any
+    )
     model._isEditing = true
     model.string = 10
     expect(model.string).toBe('')

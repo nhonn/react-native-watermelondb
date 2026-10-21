@@ -11,7 +11,12 @@ const prepareTask = (tasks: any, name: any, isCompleted: any, position: any) =>
     mock.project.id = 'MOCK_PROJECT'
   })
 
-const createTask = async (tasks: any, name: any, isCompleted: any, position: any) => {
+const createTask = async (
+  tasks: any,
+  name: any,
+  isCompleted: any,
+  position: any
+) => {
   const task = prepareTask(tasks, name, isCompleted, position)
   await tasks.database.batch(task)
   return task
@@ -21,7 +26,11 @@ const updateTask = (task: any, updater: any) =>
   task.collection.database.write(() => task.update(updater))
 
 describe('subscribeToQueryWithColumns', () => {
-  async function fullObservationTest(mockDb: any, query: any, asyncSource: any) {
+  async function fullObservationTest(
+    mockDb: any,
+    query: any,
+    asyncSource: any
+  ) {
     const { db, tasks, projects } = mockDb
     // preparation - create mock project
     await db.write(() =>
@@ -60,30 +69,30 @@ describe('subscribeToQueryWithColumns', () => {
         m3
       )
     })
-    asyncSource && (await waitForNextQuery())
+    if (asyncSource) await waitForNextQuery()
     expect(observer).toHaveBeenCalledTimes(2)
     expect(observer).toHaveBeenLastCalledWith([m1, m2])
     // add matching model
     const m4 = await db.write(() => createTask(tasks, 'name4', true, 40))
-    asyncSource && (await waitForNextQuery())
+    if (asyncSource) await waitForNextQuery()
     expect(observer).toHaveBeenCalledTimes(3)
     expect(observer).toHaveBeenLastCalledWith([m1, m2, m4])
     // remove matching model
     await db.write(() => m1.markAsDeleted())
-    asyncSource && (await waitForNextQuery())
+    if (asyncSource) await waitForNextQuery()
     expect(observer).toHaveBeenCalledTimes(4)
     expect(observer).toHaveBeenLastCalledWith([m2, m4])
     // some irrelevant change (no emission)
     await updateTask(m2, (task: any) => {
       task.name = 'changed name'
     })
-    asyncSource && (await waitForNextQuery())
+    if (asyncSource) await waitForNextQuery()
     expect(observer).toHaveBeenCalledTimes(4)
     // change model to start matching
     await updateTask(m3, (task: any) => {
       task.isCompleted = true
     })
-    asyncSource && (await waitForNextQuery())
+    if (asyncSource) await waitForNextQuery()
     expect(observer).toHaveBeenCalledTimes(5)
     expect(last(observer.mock.calls)[0]).toHaveLength(3)
     expect(last(observer.mock.calls)[0]).toEqual(
@@ -94,7 +103,7 @@ describe('subscribeToQueryWithColumns', () => {
     await updateTask(m2, (task: any) => {
       task.isCompleted = false
     })
-    asyncSource && (await waitForNextQuery())
+    if (asyncSource) await waitForNextQuery()
     expect(observer).toHaveBeenCalledTimes(6)
     expect(last(observer.mock.calls)[0]).toHaveLength(2)
     expect(last(observer.mock.calls)[0]).toEqual(
@@ -104,7 +113,7 @@ describe('subscribeToQueryWithColumns', () => {
     await updateTask(m2, (task: any) => {
       task.position = 10
     })
-    asyncSource && (await waitForNextQuery())
+    if (asyncSource) await waitForNextQuery()
     expect(observer).toHaveBeenCalledTimes(6)
     // make multiple simultaneous changes to observed records - expect only one emission
     await db.write(() =>
@@ -121,7 +130,7 @@ describe('subscribeToQueryWithColumns', () => {
         })
       )
     )
-    asyncSource && (await waitForNextQuery())
+    if (asyncSource) await waitForNextQuery()
     expect(observer).toHaveBeenCalledTimes(7)
     expect(observer).toHaveBeenLastCalledWith(
       ...observer.mock.calls[observer.mock.calls.length - 2]
@@ -132,7 +141,7 @@ describe('subscribeToQueryWithColumns', () => {
     await updateTask(m4, (task: any) => {
       task.name = 'different name'
     })
-    asyncSource && (await waitForNextQuery())
+    if (asyncSource) await waitForNextQuery()
     expect(observer).toHaveBeenCalledTimes(7)
 
     // make irrelevant changes to secondary table (async join query)

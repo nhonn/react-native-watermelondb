@@ -6,20 +6,21 @@ type OperatorFunction = (left: any, right: any) => any
 const between: OperatorFunction = (left: any, [lower, upper]: any[]) =>
   left >= lower && left <= upper
 
-export const rawFieldEquals: OperatorFunction = (left: any, right: any) => left == right
+export const rawFieldEquals: OperatorFunction = (left: any, right: any) =>
+  left == right
 
-const rawFieldNotEquals: OperatorFunction = (left: any, right: any) => !(left == right)
+const rawFieldNotEquals: OperatorFunction = (left: any, right: any) =>
+  !(left == right)
 
-const noNullComparisons: (arg0: OperatorFunction) => OperatorFunction = (
-  operator
-) => (left: any, right: any) => {
-  // return false if any operand is null/undefined
-  if (left == null || right == null) {
-    return false
+const noNullComparisons: (arg0: OperatorFunction) => OperatorFunction =
+  (operator) => (left: any, right: any) => {
+    // return false if any operand is null/undefined
+    if (left == null || right == null) {
+      return false
+    }
+
+    return operator(left, right)
   }
-
-  return operator(left, right)
-}
 
 // Same as `a > b`, but `5 > undefined` is also true
 const weakGt = (left: any, right: any) =>
@@ -42,9 +43,11 @@ export const notLike: OperatorFunction = (left: any, right: any) => {
   return !likeToRegexp(right).test(leftV)
 }
 
-const oneOf: OperatorFunction = (value: any, values: any[]) => values.includes(value)
+const oneOf: OperatorFunction = (value: any, values: any[]) =>
+  values.includes(value)
 
-const notOneOf: OperatorFunction = (value: any, values: any[]) => !values.includes(value)
+const notOneOf: OperatorFunction = (value: any, values: any[]) =>
+  !values.includes(value)
 
 const gt = (a: any, b: any) => a > b
 

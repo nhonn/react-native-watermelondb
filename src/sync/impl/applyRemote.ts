@@ -257,8 +257,6 @@ const getAllRecordsToApply = (
 ): Promise<AllRecordsToApply> => {
   const { db } = context
   return allPromisesObj(
-    (
-
     pipe(
       filterObj((_changes, tableName: TableName<any>) => {
         const collection = db.get(tableName as any)
@@ -279,7 +277,6 @@ const getAllRecordsToApply = (
         )
       )
     )(remoteChanges) as Record<string, Promise<any>>
-    )
   )
 }
 
@@ -367,10 +364,11 @@ function prepareApplyRemoteChangesToCollection<T extends Model>(
       // Nothing to do, record was locally deleted, deletion will be pushed later
     } else {
       // Record doesn't exist (but should) — just create it
-      !sendCreatedAsUpdated &&
+      if (!sendCreatedAsUpdated) {
         logError(
           `[Sync] Server wants client to update record ${table}#${raw.id}, but it doesn't exist locally. This could be a serious bug. Will create record instead. If this was intentional, please check the flag sendCreatedAsUpdated in https://watermelondb.dev/docs/Sync/Frontend#additional-synchronize-flags`
         )
+      }
       recordsToBatch.push(prepareCreateFromRaw(collection, raw))
     }
   })
@@ -385,15 +383,14 @@ const destroyAllDeletedRecords = async (
   db: Database,
   recordsToApply: AllRecordsToApply
 ): Promise<void> => {
-  const promises = toPairs(
-    recordsToApply
-  ).map(([tableName, { deletedRecordsToDestroy }]) =>
-    deletedRecordsToDestroy.length
-      ? db.adapter.destroyDeletedRecords(
-          tableName as any,
-          deletedRecordsToDestroy
-        )
-      : null
+  const promises = toPairs(recordsToApply).map(
+    ([tableName, { deletedRecordsToDestroy }]) =>
+      deletedRecordsToDestroy.length
+        ? db.adapter.destroyDeletedRecords(
+            tableName as any,
+            deletedRecordsToDestroy
+          )
+        : null
   )
   await Promise.all(promises)
 }
@@ -425,13 +422,12 @@ const unsafeApplyAllRemoteChangesByBatches = async (
   const { db } = context
   const promises: Promise<void>[] = []
   toPairs(recordsToApply).forEach(([tableName, records]) => {
-    const preparedModels: Array<
-      Model | null | undefined
-    > = prepareApplyRemoteChangesToCollection(
-      records,
-      db.get(tableName as any),
-      context
-    )
+    const preparedModels: Array<Model | null | undefined> =
+      prepareApplyRemoteChangesToCollection(
+        records,
+        db.get(tableName as any),
+        context
+      )
     splitEvery(5000, preparedModels).forEach((recordBatch) => {
       promises.push(db.batch(recordBatch))
     })

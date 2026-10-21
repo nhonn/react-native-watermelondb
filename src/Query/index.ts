@@ -49,17 +49,18 @@ export default class Query<Record extends Model> {
   description: QueryDescription
   _rawDescription: QueryDescription
   @lazy
-  _cachedSubscribable: SharedSubscribable<
-    Record[]
-  > = new SharedSubscribable((subscriber) => subscribeToQuery(this, subscriber))
+  _cachedSubscribable: SharedSubscribable<Record[]> = new SharedSubscribable(
+    (subscriber) => subscribeToQuery(this, subscriber)
+  )
   @lazy
   _cachedCountSubscribable: SharedSubscribable<number> = new SharedSubscribable(
     (subscriber) => subscribeToCount(this, false, subscriber)
   )
   @lazy
-  _cachedCountThrottledSubscribable: SharedSubscribable<number> = new SharedSubscribable(
-    (subscriber) => subscribeToCount(this, true, subscriber)
-  )
+  _cachedCountThrottledSubscribable: SharedSubscribable<number> =
+    new SharedSubscribable((subscriber) =>
+      subscribeToCount(this, true, subscriber)
+    )
 
   // Note: Don't use this directly, use Collection.query(...)
   constructor(collection: Collection<Record>, clauses: Clause[]) {
@@ -83,15 +84,8 @@ export default class Query<Record extends Model> {
       'Clause'
     )
     const { collection } = this
-    const {
-      where,
-      sortBy,
-      take,
-      skip,
-      joinTables,
-      nestedJoinTables,
-      sql,
-    } = this._rawDescription
+    const { where, sortBy, take, skip, joinTables, nestedJoinTables, sql } =
+      this._rawDescription
     invariant(!sql, 'Cannot extend an unsafe SQL query')
     // TODO: Move this & tests to QueryDescription
     return new Query(collection, [
@@ -123,6 +117,8 @@ export default class Query<Record extends Model> {
     return toPromise((callback) => this.collection._fetchQuery(this, callback))
   }
 
+  // `await query` is public API
+  // oxlint-disable-next-line unicorn/no-thenable
   then<U>(
     onFulfill?: (value: Record[]) => Promise<U> | U,
     onReject?: (error: any) => Promise<U> | U
@@ -168,15 +164,13 @@ export default class Query<Record extends Model> {
   }
 
   get count(): QueryCountProxy {
-    const model = this
     return {
-      then<U>(
+      // `await query.count` is public API
+      // oxlint-disable-next-line unicorn/no-thenable
+      then: <U>(
         onFulfill?: (value: number) => Promise<U> | U,
         onReject?: (error: any) => Promise<U> | U
-      ): Promise<U> {
-        // $FlowFixMe
-        return model.fetchCount().then(onFulfill, onReject)
-      },
+      ): Promise<U> => this.fetchCount().then(onFulfill, onReject),
     }
   }
 

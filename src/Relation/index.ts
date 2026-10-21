@@ -5,7 +5,9 @@ import lazy from '../decorators/lazy'
 import type { default as Model, RecordId } from '../Model'
 import type { ColumnName, TableName } from '../Schema'
 import { createObservable } from './helpers'
-type ExtractRecordId<T> = T extends Model ? RecordId : RecordId | null | undefined
+type ExtractRecordId<T> = T extends Model
+  ? RecordId
+  : RecordId | null | undefined
 export type Options = {
   isImmutable: boolean
 } // Defines a one-to-one relation between two Models (two tables in db)
@@ -19,9 +21,11 @@ export default class Relation<T extends Model | null | undefined> {
   _relationTableName: TableName<NonNullable<T>>
   _isImmutable: boolean
   @lazy
-  _cachedObservable: Observable<T> = (createObservable(this).pipe(
-    publishReplayLatestWhileConnected
-  ) as ConnectableObservable<T>).refCount()
+  _cachedObservable: Observable<T> = (
+    createObservable(this).pipe(
+      publishReplayLatestWhileConnected
+    ) as ConnectableObservable<T>
+  ).refCount()
 
   constructor(
     model: Model,
@@ -64,6 +68,8 @@ export default class Relation<T extends Model | null | undefined> {
     return Promise.resolve(null as any)
   }
 
+  // `await relation` is public API
+  // oxlint-disable-next-line unicorn/no-thenable
   then<U>(
     onFulfill?: (value: T) => Promise<U> | U,
     onReject?: (error: any) => Promise<U> | U

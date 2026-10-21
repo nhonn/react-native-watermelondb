@@ -13,7 +13,8 @@ const mockCollection = {
 const makeDescription = (conditions: any) =>
   new Query(mockCollection as any, conditions).description
 
-const makeMatcher = (conditions: any) => encodeMatcher(makeDescription(conditions))
+const makeMatcher = (conditions: any) =>
+  encodeMatcher(makeDescription(conditions))
 
 const expectTrue = (matcher: any, raw: any) => expect(matcher(raw)).toBe(true)
 

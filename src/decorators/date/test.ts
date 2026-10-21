@@ -26,7 +26,8 @@ describe('decorators/timestamp', () => {
       } as any,
       {
         date: 1400000000000,
-      } as any)
+      } as any
+    )
     expect(model.date).toBeInstanceOf(Date)
     expect(+model.date).toBe(1400000000000)
   })
@@ -37,7 +38,8 @@ describe('decorators/timestamp', () => {
       } as any,
       {
         date: null,
-      } as any)
+      } as any
+    )
     expect(model.date).toBe(null)
   })
   it('sets timestamps cast from dates', () => {
@@ -45,7 +47,8 @@ describe('decorators/timestamp', () => {
       {
         schema,
       } as any,
-      {} as any)
+      {} as any
+    )
     model._isEditing = true
     model.date = Date.now()
     expect(model._getRaw('date')).toBeGreaterThan(1500000000000)
@@ -55,7 +58,8 @@ describe('decorators/timestamp', () => {
       {
         schema,
       } as any,
-      {} as any)
+      {} as any
+    )
     model._isEditing = true
     model.date = null
     expect(model._getRaw('date')).toBe(null)
@@ -67,7 +71,8 @@ describe('decorators/timestamp', () => {
       } as any,
       {
         date: 0,
-      } as any)
+      } as any
+    )
     expect(model.date).toBeInstanceOf(Date)
     expect(+model.date).toBe(0)
   })
@@ -76,7 +81,8 @@ describe('decorators/timestamp', () => {
       {
         schema,
       } as any,
-      {} as any)
+      {} as any
+    )
     model._isEditing = true
     model.date = new Date(0)
     expect(model._getRaw('date')).toBe(0)
@@ -99,7 +105,8 @@ describe('decorators/timestamp', () => {
       } as any,
       {
         date: 0,
-      } as any)
+      } as any
+    )
     expect(model.date).toBeInstanceOf(Date)
     model._isEditing = true
     model.date = '2011-10-05T14:48:00.000Z'

@@ -122,8 +122,9 @@ describe('Query', () => {
     it(`throws an error on incorrect associations`, () => {
       expect(
         () =>
-          new Query(mockCollection as any, [Q.experimentalJoinTables(['blaublams'])])
-            .associations
+          new Query(mockCollection as any, [
+            Q.experimentalJoinTables(['blaublams']),
+          ]).associations
       ).toThrow(
         `Query on 'mock_tasks' joins with 'blaublams', but MockTask does not have associations={} defined for 'blaublams'`
       )
@@ -337,7 +338,10 @@ describe('Query', () => {
       // easy counting
       database.adapter.getLocal('nothing')
 
-    const testQueryObservation = async (makeSubscribe: any, withColumns: any) => {
+    const testQueryObservation = async (
+      makeSubscribe: any,
+      withColumns: any
+    ) => {
       const { database, tasks } = mockDatabase()
       const adapterSpy = jest.spyOn(database.adapter.underlyingAdapter, 'query')
       const query = new Query(tasks, [])
@@ -395,7 +399,10 @@ describe('Query', () => {
       )
     })
 
-    const testCountObservation = async (makeSubscribe: any, isThrottled: any) => {
+    const testCountObservation = async (
+      makeSubscribe: any,
+      isThrottled: any
+    ) => {
       const { database, tasks } = mockDatabase()
       const adapterSpy = jest.spyOn(database.adapter.underlyingAdapter, 'count')
       const query = new Query(tasks, [])

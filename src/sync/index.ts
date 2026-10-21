@@ -21,7 +21,7 @@ export type SyncPullArgs = {
   schemaVersion: SchemaVersion
   migration: MigrationSyncChanges
 }
-export type SyncPullStrategyType =  // Standard sync strategy (default)
+export type SyncPullStrategyType = // Standard sync strategy (default)
   | 'incremental' // Advanced alternative strategy: indicates that `changes` contains a full dataset (same as during
   // initial sync). Local records not present in the changeset will be deleted. Other records will be
   // applied as usual (created, updated, local update conflicts resolved).
@@ -40,12 +40,11 @@ export type SyncPullStrategy =
         () => Where[]
       >
     }
-export type SyncPullResult =
-  | {
-      changes: SyncDatabaseChangeSet
-      timestamp: Timestamp
-      experimentalStrategy?: SyncPullStrategy
-    }
+export type SyncPullResult = {
+  changes: SyncDatabaseChangeSet
+  timestamp: Timestamp
+  experimentalStrategy?: SyncPullStrategy
+}
 export type SyncRejectedIds = Record<TableName<any>, RecordId[]>
 export type SyncPushArgs = {
   changes: SyncDatabaseChangeSet
@@ -121,7 +120,7 @@ export async function synchronize(args: SyncArgs): Promise<void> {
 
     await synchronizeImpl(args)
   } catch (error) {
-    args.log && (args.log.error = error as Error)
+    if (args.log) args.log.error = error as Error
     throw error
   }
 }

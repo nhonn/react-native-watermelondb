@@ -115,9 +115,7 @@ export default class Model {
    *   task.name = 'New name'
    * })
    */
-  async update(
-    recordUpdater: (arg: this) => void = noop
-  ): Promise<this> {
+  async update(recordUpdater: (arg: this) => void = noop): Promise<this> {
     this.__ensureInWriter(`Model.update()`)
 
     const record = this.prepareUpdate(recordUpdater)
@@ -454,7 +452,7 @@ export default class Model {
     return () => {
       const idx = this._subscribers.indexOf(entry)
 
-      idx !== -1 && this._subscribers.splice(idx, 1)
+      if (idx !== -1) this._subscribers.splice(idx, 1)
     }
   }
 

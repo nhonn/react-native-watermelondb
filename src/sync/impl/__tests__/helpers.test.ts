@@ -91,7 +91,8 @@ describe('isChangeSetEmpty', () => {
               },
             ],
           },
-        }) as any)
+        }) as any
+      )
     ).toBe(false)
     expect(
       isChangeSetEmpty(
@@ -103,7 +104,8 @@ describe('isChangeSetEmpty', () => {
               },
             ],
           },
-        }) as any)
+        }) as any
+      )
     ).toBe(false)
     expect(
       isChangeSetEmpty(
@@ -111,7 +113,8 @@ describe('isChangeSetEmpty', () => {
           mock_comments: {
             deleted: ['foo'],
           },
-        }) as any)
+        }) as any
+      )
     ).toBe(false)
   })
 })

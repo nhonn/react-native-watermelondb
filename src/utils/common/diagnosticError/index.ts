@@ -1,8 +1,6 @@
 export type DiagnosticErrorFunction = (arg0: string) => Error
-let customDiagnosticErrorFunction:
-  | DiagnosticErrorFunction
-  | null
-  | undefined = null
+let customDiagnosticErrorFunction: DiagnosticErrorFunction | null | undefined =
+  null
 // Use this to replace default diagnosticError function to inject your custom logic
 // (e.g. only display errors in development, or log errors to external service)
 export function useCustomDiagnosticErrorFunction(

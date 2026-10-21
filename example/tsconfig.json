@@ -1,25 +1,15 @@
 {
   "extends": "@react-native/typescript-config",
-  "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": [
-    "**/node_modules",
-    "**/Pods"
-  ],
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["**/node_modules", "**/Pods"],
   "compilerOptions": {
     "strict": true,
     "types": ["jest", "node"],
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "react-native-watermelondb": [
-        "../src"
-      ],
-      "react-native-watermelondb/*": [
-        "../src/*"
-      ]
+      "react-native-watermelondb": ["../src"],
+      "react-native-watermelondb/*": ["../src/*"]
     },
     "experimentalDecorators": true
   }

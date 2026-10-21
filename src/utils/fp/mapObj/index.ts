@@ -2,7 +2,8 @@
 
 /* eslint-disable guard-for-in */
 type MapFn = (value: any, key: string, obj: any) => any
-type MapObj = ((fn: MapFn, obj: any) => any) & ((fn: MapFn) => (obj: any) => any)
+type MapObj = ((fn: MapFn, obj: any) => any) &
+  ((fn: MapFn) => (obj: any) => any)
 
 function mapObj(fn: MapFn, obj?: any): any {
   if (arguments.length === 1) {

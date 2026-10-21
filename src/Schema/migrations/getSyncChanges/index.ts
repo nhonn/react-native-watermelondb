@@ -64,10 +64,12 @@ export default function getSyncChanges(
     groupBy(({ table }) => table),
     toPairs
   )(allAddedColumns)
-  const addedColumns = columnsByTable.map(([table, columnDefs]: [string, any[]]) => ({
-    table: tableName(table),
-    columns: unique(columnDefs.map(({ name }: any) => name)),
-  }))
+  const addedColumns = columnsByTable.map(
+    ([table, columnDefs]: [string, any[]]) => ({
+      table: tableName(table),
+      columns: unique(columnDefs.map(({ name }: any) => name)),
+    })
+  )
   return {
     from: fromVersion,
     tables: unique(createdTables),

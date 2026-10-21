@@ -187,10 +187,8 @@ export default class Database {
     }
 
     // NOTE: We must make two passes to ensure all changes to caches are applied before subscribers are called
-    const changes: [
-      TableName<any>,
-      CollectionChangeSet<any>
-    ][] = Object.entries(changeNotifications) as any
+    const changes: [TableName<any>, CollectionChangeSet<any>][] =
+      Object.entries(changeNotifications) as any
     changes.forEach(([table, changeSet]) => {
       this.collections.get(table)._applyChangesToCache(changeSet)
     })
@@ -201,10 +199,8 @@ export default class Database {
   }
 
   _pendingNotificationBatches: number = 0
-  _pendingNotificationChanges: [
-    TableName<any>,
-    CollectionChangeSet<any>
-  ][][] = []
+  _pendingNotificationChanges: [TableName<any>, CollectionChangeSet<any>][][] =
+    []
 
   _notify(changes: [TableName<any>, CollectionChangeSet<any>][]): void {
     if (this._pendingNotificationBatches > 0) {
@@ -218,7 +214,7 @@ export default class Database {
     const databaseChangeNotifySubscribers = ([tables, subscriber]: [
       Array<TableName<any>>,
       () => void,
-      any
+      any,
     ]): void => {
       if (tables.some((table) => affectedTables.has(table))) {
         subscriber()
@@ -348,7 +344,7 @@ export default class Database {
     return () => {
       const idx = this._subscribers.indexOf(entry)
 
-      idx !== -1 && this._subscribers.splice(idx, 1)
+      if (idx !== -1) this._subscribers.splice(idx, 1)
     }
   }
 

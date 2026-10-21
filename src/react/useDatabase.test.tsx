@@ -12,6 +12,7 @@ describe('useDatabase hook', () => {
   test('should use database', () => {
     let current: any
     const Component = () => {
+      // oxlint-disable-next-line react/globals
       current = useDatabase()
       return null
     }

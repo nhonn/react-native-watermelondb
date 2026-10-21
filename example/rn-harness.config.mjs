@@ -1,5 +1,11 @@
-import { androidEmulator, androidPlatform } from '@react-native-harness/platform-android'
-import { applePlatform, appleSimulator } from '@react-native-harness/platform-apple'
+import {
+  androidEmulator,
+  androidPlatform,
+} from '@react-native-harness/platform-android'
+import {
+  applePlatform,
+  appleSimulator,
+} from '@react-native-harness/platform-apple'
 
 const config = {
   entryPoint: './index.js',
@@ -25,7 +31,7 @@ const config = {
         process.env.IOS_VERSION ?? '26.5'
       ),
       bundleId: 'com.watermelondbexample',
-    })
+    }),
   ],
   defaultRunner: 'android',
   bridgeTimeout: 300000,

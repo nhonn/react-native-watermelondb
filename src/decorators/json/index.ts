@@ -25,7 +25,7 @@ const parseJSON = (value: any) => {
 
   try {
     return JSON.parse(value)
-  } catch (_) {
+  } catch {
     return undefined
   }
 }
@@ -33,55 +33,54 @@ const parseJSON = (value: any) => {
 const defaultOptions = {
   memo: false,
 }
-export const jsonDecorator: Decorator = (
-  rawFieldName: ColumnName,
-  sanitizer: (json: any, model?: Model) => any,
-  options: {
-    memo?: boolean
-  } = defaultOptions
-) => (
-  target: Record<string, any>,
-  key: string,
-  descriptor: Record<string, any>
-) => {
-  ensureDecoratorUsedProperly(rawFieldName, target, key, descriptor)
-  return {
-    configurable: true,
-    enumerable: true,
+export const jsonDecorator: Decorator =
+  (
+    rawFieldName: ColumnName,
+    sanitizer: (json: any, model?: Model) => any,
+    options: {
+      memo?: boolean
+    } = defaultOptions
+  ) =>
+  (
+    target: Record<string, any>,
+    key: string,
+    descriptor: Record<string, any>
+  ) => {
+    ensureDecoratorUsedProperly(rawFieldName, target, key, descriptor)
+    return {
+      configurable: true,
+      enumerable: true,
 
-    get(this: any): any {
-      const model = this
+      get(this: any): any {
+        const rawValue = this.asModel._getRaw(rawFieldName)
 
-      const rawValue = model.asModel._getRaw(rawFieldName)
+        if (options.memo) {
+          // Use cached value if possible
+          this._jsonDecoratorCache = this._jsonDecoratorCache || {}
+          const cachedEntry = this._jsonDecoratorCache[rawFieldName]
 
-      if (options.memo) {
-        // Use cached value if possible
-        model._jsonDecoratorCache = model._jsonDecoratorCache || {}
-        const cachedEntry = model._jsonDecoratorCache[rawFieldName]
-
-        if (cachedEntry && cachedEntry[0] === rawValue) {
-          return cachedEntry[1]
+          if (cachedEntry && cachedEntry[0] === rawValue) {
+            return cachedEntry[1]
+          }
         }
-      }
 
-      const parsedValue = parseJSON(rawValue)
-      const sanitized = sanitizer(parsedValue, model)
+        const parsedValue = parseJSON(rawValue)
+        const sanitized = sanitizer(parsedValue, this)
 
-      if (options.memo) {
-        model._jsonDecoratorCache[rawFieldName] = [rawValue, sanitized]
-      }
+        if (options.memo) {
+          this._jsonDecoratorCache[rawFieldName] = [rawValue, sanitized]
+        }
 
-      return sanitized
-    },
+        return sanitized
+      },
 
-    set(this: any, json: any): void {
-      const model = this
-      const sanitizedValue = sanitizer(json, model)
-      const stringifiedValue =
-        sanitizedValue != null ? JSON.stringify(sanitizedValue) : null
+      set(this: any, json: any): void {
+        const sanitizedValue = sanitizer(json, this)
+        const stringifiedValue =
+          sanitizedValue != null ? JSON.stringify(sanitizedValue) : null
 
-      model.asModel._setRaw(rawFieldName, stringifiedValue)
-    },
+        this.asModel._setRaw(rawFieldName, stringifiedValue)
+      },
+    }
   }
-}
 export default jsonDecorator

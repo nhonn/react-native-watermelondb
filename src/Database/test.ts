@@ -721,9 +721,15 @@ describe('Database', () => {
 
       const action = () => db.write(async () => 42)
 
-      await expectError(db.write(async (writer) => writer.callWriter((() => {}) as any)))
-      await expectError(db.write(async (writer) => writer.callReader((() => {}) as any)))
-      await expectError(db.read(async (reader) => reader.callReader((() => {}) as any)))
+      await expectError(
+        db.write(async (writer) => writer.callWriter((() => {}) as any))
+      )
+      await expectError(
+        db.write(async (writer) => writer.callReader((() => {}) as any))
+      )
+      await expectError(
+        db.read(async (reader) => reader.callReader((() => {}) as any))
+      )
       await expectError(
         db.write(async (writer) =>
           writer.callWriter(async () => {

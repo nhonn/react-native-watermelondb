@@ -3,7 +3,10 @@ const cleanUpBatchingInterval = 250 // ms
 const cleanUpInterval = 2000 // ms
 
 let pendingCleanupActions: Array<() => void> = []
-let scheduledCleanUpScheduler: ReturnType<typeof setTimeout> | null | undefined = null
+let scheduledCleanUpScheduler:
+  | ReturnType<typeof setTimeout>
+  | null
+  | undefined = null
 
 function cleanUpWithObservablesActions(actions: Array<() => void>): void {
   actions.forEach((action) => action())

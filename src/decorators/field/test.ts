@@ -6,9 +6,9 @@ describe('decorators/field', () => {
     const model = new MockTask(tasks, {} as any)
     model._getRaw = jest.fn()
     model._setRaw = jest.fn()
-    model.projectId
+    void model.projectId
     model.projectId = 'xx'
-    model.projectId
+    void model.projectId
     model.projectId = 'bar'
     expect(model._getRaw).toHaveBeenCalledTimes(2)
     expect(model._getRaw).toHaveBeenCalledWith('project_id')

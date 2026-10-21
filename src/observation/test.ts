@@ -11,7 +11,12 @@ const prepareTask = (tasks: any, name: any, isCompleted: any, position: any) =>
     mock.project.id = 'MOCK_PROJECT'
   })
 
-const createTask = async (tasks: any, name: any, isCompleted: any, position: any) => {
+const createTask = async (
+  tasks: any,
+  name: any,
+  isCompleted: any,
+  position: any
+) => {
   const task = prepareTask(tasks, name, isCompleted, position)
   await tasks.database.batch(task)
   return task

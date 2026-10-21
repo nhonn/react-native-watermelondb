@@ -102,7 +102,11 @@ export default class Collection<Record extends Model> {
           observer.next(record)
           unsubscribe = record.experimentalSubscribe((isDeleted) => {
             if (!unsubscribed) {
-              isDeleted ? observer.complete() : observer.next(record)
+              if (isDeleted) {
+                observer.complete()
+              } else {
+                observer.next(record)
+              }
             }
           })
         } else {
@@ -113,7 +117,7 @@ export default class Collection<Record extends Model> {
 
       return () => {
         unsubscribed = true
-        unsubscribe && unsubscribe()
+        if (unsubscribe) unsubscribe()
       }
     })
   }
@@ -253,7 +257,9 @@ export default class Collection<Record extends Model> {
       callback(
         mapValue((rawRecord) => {
           invariant(rawRecord, `Record ${this.table}#${id} not found`)
-          return this._cache.recordFromQueryResult(rawRecord as RecordId | RawRecord)
+          return this._cache.recordFromQueryResult(
+            rawRecord as RecordId | RawRecord
+          )
         }, result)
       )
     )
@@ -274,7 +280,7 @@ export default class Collection<Record extends Model> {
   _notify(operations: CollectionChangeSet<Record>): void {
     const collectionChangeNotifySubscribers = ([subscriber]: [
       (arg0: CollectionChangeSet<Record>) => void,
-      any
+      any,
     ]): void => {
       subscriber(operations)
     }
@@ -319,7 +325,7 @@ export default class Collection<Record extends Model> {
     return () => {
       const idx = this._subscribers.indexOf(entry)
 
-      idx !== -1 && this._subscribers.splice(idx, 1)
+      if (idx !== -1) this._subscribers.splice(idx, 1)
     }
   }
 }

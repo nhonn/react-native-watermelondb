@@ -1,5 +1,5 @@
 export default function allPromisesObj<
-  Spec extends Record<string, Promise<any>>
+  Spec extends Record<string, Promise<any>>,
 >(promisesObj: Spec): Promise<{ [K in keyof Spec]: Awaited<Spec[K]> }> {
   return new Promise((resolve, reject) => {
     const keys = Object.keys(promisesObj)

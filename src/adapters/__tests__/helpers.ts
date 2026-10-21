@@ -288,7 +288,8 @@ export const taskQuery = (...conditions: any[]) =>
   modelQuery(MockTask, ...conditions).serialize()
 export const projectQuery = (...conditions: any[]) =>
   modelQuery(MockProject, ...conditions).serialize()
-export const mockTaskRaw = (raw: any) => sanitizedRaw(raw, testSchema.tables.tasks)
+export const mockTaskRaw = (raw: any) =>
+  sanitizedRaw(raw, testSchema.tables.tasks)
 export const mockProjectRaw = (raw: any) =>
   sanitizedRaw(raw, testSchema.tables.projects)
 export const mockTagAssignmentRaw = (raw: any) =>

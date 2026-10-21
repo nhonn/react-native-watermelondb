@@ -25,7 +25,10 @@ const resolveDatabasePath = (dbName: string): string =>
 class SqliteNitroDispatcher implements SqliteDispatcher {
   _db: NativeDatabase
 
-  constructor(dbName: string, { usesExclusiveLocking }: SqliteDispatcherOptions) {
+  constructor(
+    dbName: string,
+    { usesExclusiveLocking }: SqliteDispatcherOptions
+  ) {
     this._db = factory.createDatabase(
       resolveDatabasePath(dbName),
       usesExclusiveLocking

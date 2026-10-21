@@ -4,7 +4,6 @@ import type { SQL } from './index'
 
 // @ts-expect-error
 Query.prototype._sql = function _sql(count: boolean = false): SQL {
-  const query: Query<any> = this
-  const [sql] = encodeQuery(query.serialize(), count)
+  const [sql] = encodeQuery(this.serialize(), count)
   return sql
 }

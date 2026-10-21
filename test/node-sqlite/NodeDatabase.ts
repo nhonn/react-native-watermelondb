@@ -70,7 +70,7 @@ export class NodeDatabase {
     } catch (error) {
       try {
         db.exec('rollback transaction')
-      } catch (_) {
+      } catch {
         // ignore secondary failure
       }
       throw error
@@ -118,11 +118,17 @@ export class NodeDatabase {
     return { code: 'schema_needed' }
   }
 
-  async setUpWithSchema(schemaSql: string, schemaVersion: number): Promise<void> {
+  async setUpWithSchema(
+    schemaSql: string,
+    schemaVersion: number
+  ): Promise<void> {
     this._resetWithSchema(schemaSql, schemaVersion)
   }
 
-  async unsafeResetDatabase(schemaSql: string, schemaVersion: number): Promise<void> {
+  async unsafeResetDatabase(
+    schemaSql: string,
+    schemaVersion: number
+  ): Promise<void> {
     this._resetWithSchema(schemaSql, schemaVersion)
   }
 
@@ -148,7 +154,9 @@ export class NodeDatabase {
     if (this._cache.has(key)) {
       return id
     }
-    const rows = this._rows(`select * from "${table}" where id == ? limit 1`, [id])
+    const rows = this._rows(`select * from "${table}" where id == ? limit 1`, [
+      id,
+    ])
     if (!rows[0]) {
       return null
     }
@@ -156,7 +164,11 @@ export class NodeDatabase {
     return rows[0]
   }
 
-  async query(table: string, sql: string, args: Value[]): Promise<(string | Row)[]> {
+  async query(
+    table: string,
+    sql: string,
+    args: Value[]
+  ): Promise<(string | Row)[]> {
     return this._rows(sql, args).map((row) => {
       const id = String(row.id)
       const key = `${table}$${id}`
@@ -205,7 +217,9 @@ export class NodeDatabase {
   }
 
   async getLocal(key: string): Promise<string | null> {
-    const row = this._rows('select value from local_storage where key = ?', [key])[0]
+    const row = this._rows('select value from local_storage where key = ?', [
+      key,
+    ])[0]
     return row ? (row.value as string) : null
   }
 

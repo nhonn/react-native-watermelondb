@@ -535,11 +535,14 @@ describe('Automatic created_at/updated_at', () => {
 })
 describe('RawRecord manipulation', () => {
   it('allows raw access via _getRaw', () => {
-    const model = new MockModel(null as any, {
-      col1: 'val1',
-      col2: false,
-      col3: null,
-    } as any)
+    const model = new MockModel(
+      null as any,
+      {
+        col1: 'val1',
+        col2: false,
+        col3: null,
+      } as any
+    )
     expect(model._getRaw('col1')).toBe('val1')
     expect(model._getRaw('col2')).toBe(false)
     expect(model._getRaw('col3')).toBe(null)
@@ -841,7 +844,11 @@ describe('Model observation', () => {
     const cExpected = 'm-m---m----m-m---|'
     // @ts-expect-error ported Flow test code is not type-safe here
     scheduler.hot(changes__).subscribe((event) => {
-      event === 'a' ? model._notifyChanged() : model._notifyDestroyed()
+      if (event === 'a') {
+        model._notifyChanged()
+      } else {
+        model._notifyDestroyed()
+      }
     })
     // @ts-expect-error ported Flow test code is not type-safe here
     const a$ = scheduler.hot(a________).pipe(mergeMap(() => model.observe()))

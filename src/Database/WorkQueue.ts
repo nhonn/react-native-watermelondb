@@ -71,7 +71,8 @@ class ReaderInterfaceImpl implements ReaderInterface {
 
 class WriterInterfaceImpl
   extends ReaderInterfaceImpl
-  implements WriterInterface {
+  implements WriterInterface
+{
   callWriter<T>(writer: () => Promise<T>): Promise<T> {
     this.__validateQueue()
 

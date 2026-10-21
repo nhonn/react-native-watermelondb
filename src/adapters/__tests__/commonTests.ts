@@ -939,7 +939,8 @@ export default () => {
       } as any,
       {
         id: 't1',
-      } as any)
+      } as any
+    )
     await expect(adapter.batch([['create', record1]])).rejects.toBeInstanceOf(
       Error
     )

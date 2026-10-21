@@ -73,8 +73,8 @@ export default class RecordCache<Record extends Model> {
       // nonetheless occur, so when it does, print out useful diagnostics and attempt to recover by
       // resetting adapter-side cached set
       try {
-        const adapter: any = this._debugCollection.database.adapter
-          .underlyingAdapter
+        const adapter: any =
+          this._debugCollection.database.adapter.underlyingAdapter
 
         // $FlowFixMe
         if (adapter._clearCachedRecords) {
@@ -105,10 +105,11 @@ export default class RecordCache<Record extends Model> {
     if (cachedRecord) {
       // This may legitimately happen if we previously got ID without a record and we cleared
       // adapter-side cached record ID maps to recover
-      warnIfCached &&
+      if (warnIfCached) {
         logger.warn(
           `Record ${this.tableName}#${cachedRecord.id} is cached, but full raw object was sent over the bridge`
         )
+      }
       return cachedRecord
     }
 

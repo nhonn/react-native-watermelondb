@@ -19,7 +19,7 @@ export default function subscribeToQueryReloading<Record extends Model>(
 
   function reloadingObserverFetch(): void {
     if (shouldEmitStatus) {
-      !unsubscribed && subscriber(false as any)
+      if (!unsubscribed) subscriber(false as any)
     }
 
     collection._fetchQuery(query, (result) => {
@@ -35,7 +35,7 @@ export default function subscribeToQueryReloading<Record extends Model>(
           !previousRecords ||
           !identicalArrays(records, previousRecords))
       previousRecords = records
-      shouldEmit && subscriber(records)
+      if (shouldEmit) subscriber(records)
     })
   }
 

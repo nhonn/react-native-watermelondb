@@ -75,6 +75,6 @@ export function devSetupCallback(
       `Uh-oh. Database failed to load, we're in big trouble. This might happen if you didn't set up native code correctly (iOS, Android), or if you didn't recompile native app after WatermelonDB update. It might also mean that IndexedDB or SQLite refused to open.`,
       result.error
     )
-    onSetUpError && onSetUpError(result.error)
+    if (onSetUpError) onSetUpError(result.error)
   }
 }

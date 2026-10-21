@@ -6,7 +6,8 @@ import { logger } from '../utils/common'
 import { toPromise } from '../utils/fp/Result'
 import { mockDatabase, MockTask, testSchema } from '../__tests__/testModels'
 
-const mockQuery = (collection: any) => new Query(collection, [Q.where('a', 'b')])
+const mockQuery = (collection: any) =>
+  new Query(collection, [Q.where('a', 'b')])
 
 describe('Collection', () => {
   it(`exposes database`, () => {
@@ -103,7 +104,10 @@ describe('finding records', () => {
     const { tasks } = mockDatabase()
     // @ts-expect-error ported Flow test code is not type-safe here
     await expectToRejectWithMessage(tasks.find(), 'Invalid record ID')
-    await expectToRejectWithMessage(tasks.find(null as any), 'Invalid record ID')
+    await expectToRejectWithMessage(
+      tasks.find(null as any),
+      'Invalid record ID'
+    )
     await expectToRejectWithMessage(tasks.find({} as any), 'Invalid record ID')
   })
 })

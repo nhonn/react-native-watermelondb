@@ -23,30 +23,27 @@ export default async function synchronize({
   _unsafeBatchPerCollection,
 }: SyncArgs): Promise<void> {
   const resetCount = database._resetCount
-  log && (log.startedAt = new Date())
-  log && (log.phase = 'starting')
+  if (log) log.startedAt = new Date()
+  if (log) log.phase = 'starting'
   // TODO: Wrap the three computionally intensive phases in `requestIdleCallback`
   // pull phase
   const lastPulledAt = await getLastPulledAt(database)
-  log && (log.lastPulledAt = lastPulledAt)
-  const {
-    schemaVersion,
-    migration,
-    shouldSaveSchemaVersion,
-  } = await getMigrationInfo(
-    database,
-    log,
-    lastPulledAt,
-    migrationsEnabledAtVersion
-  )
-  log && (log.phase = 'ready to pull')
+  if (log) log.lastPulledAt = lastPulledAt
+  const { schemaVersion, migration, shouldSaveSchemaVersion } =
+    await getMigrationInfo(
+      database,
+      log,
+      lastPulledAt,
+      migrationsEnabledAtVersion
+    )
+  if (log) log.phase = 'ready to pull'
   // $FlowFixMe
   const pullResult = await pullChanges({
     lastPulledAt,
     schemaVersion,
     migration,
   })
-  log && (log.phase = 'pulled')
+  if (log) log.phase = 'pulled'
   let newLastPulledAt: Timestamp = (pullResult as any).timestamp
   const remoteChangeCount = pullResult.changes
     ? changeSetCount(pullResult.changes)
@@ -65,7 +62,7 @@ export default async function synchronize({
       '[Sync] Concurrent synchronization is not allowed. More than one synchronize() call was running at the same time, and the later one was aborted before committing results to local database.'
     )
 
-    log && (log.newLastPulledAt = newLastPulledAt)
+    if (log) log.newLastPulledAt = newLastPulledAt
     invariant(
       typeof newLastPulledAt === 'number' && newLastPulledAt > 0,
       `pullChanges() returned invalid timestamp ${newLastPulledAt}. timestamp must be a non-zero number`
@@ -73,7 +70,7 @@ export default async function synchronize({
 
     // $FlowFixMe
     const { changes: remoteChanges, ...resultRest } = pullResult
-    log && (log.remoteChangeCount = remoteChangeCount)
+    if (log) log.remoteChangeCount = remoteChangeCount
     // $FlowFixMe
     await applyRemoteChanges(remoteChanges, {
       db: database,
@@ -86,9 +83,9 @@ export default async function synchronize({
       conflictResolver,
       _unsafeBatchPerCollection,
     })
-    onDidPullChanges && onDidPullChanges(resultRest)
+    if (onDidPullChanges) onDidPullChanges(resultRest)
 
-    log && (log.phase = 'applied remote changes')
+    if (log) log.phase = 'applied remote changes'
     await setLastPulledAt(database, newLastPulledAt)
 
     if (shouldSaveSchemaVersion) {
@@ -98,33 +95,33 @@ export default async function synchronize({
 
   // push phase
   if (pushChanges) {
-    log && (log.phase = 'ready to fetch local changes')
+    if (log) log.phase = 'ready to fetch local changes'
     const localChanges = await fetchLocalChanges(database)
-    log && (log.localChangeCount = changeSetCount(localChanges.changes))
-    log && (log.phase = 'fetched local changes')
+    if (log) log.localChangeCount = changeSetCount(localChanges.changes)
+    if (log) log.phase = 'fetched local changes'
     ensureSameDatabase(database, resetCount)
 
     if (!isChangeSetEmpty(localChanges.changes)) {
-      log && (log.phase = 'ready to push')
+      if (log) log.phase = 'ready to push'
       const pushResult =
         (await pushChanges({
           changes: localChanges.changes,
           lastPulledAt: newLastPulledAt,
         })) || {}
-      log && (log.phase = 'pushed')
-      log && (log.rejectedIds = pushResult.experimentalRejectedIds)
+      if (log) log.phase = 'pushed'
+      if (log) log.rejectedIds = pushResult.experimentalRejectedIds
       ensureSameDatabase(database, resetCount)
       await markLocalChangesAsSynced(
         database,
         localChanges,
         pushResult.experimentalRejectedIds
       )
-      log && (log.phase = 'marked local changes as synced')
+      if (log) log.phase = 'marked local changes as synced'
     }
   } else {
-    log && (log.phase = 'pushChanges not defined')
+    if (log) log.phase = 'pushChanges not defined'
   }
 
-  log && (log.finishedAt = new Date())
-  log && (log.phase = 'done')
+  if (log) log.finishedAt = new Date()
+  if (log) log.phase = 'done'
 }

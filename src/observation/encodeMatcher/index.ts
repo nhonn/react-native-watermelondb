@@ -14,28 +14,27 @@ import canEncodeMatcher, { forbiddenError } from './canEncode'
 // eslint-disable-next-line no-unused-vars
 export type Matcher<_Element extends Model> = (arg0: RawRecord) => boolean
 
-const encodeWhereDescription: (arg0: WhereDescription) => Matcher<Model> = (
-  description
-) => (rawRecord) => {
-  const left = (rawRecord as Record<string, any>)[description.left]
-  const { comparison } = description
-  const operator = operators[comparison.operator]
-  const compRight = comparison.right
-  let right
+const encodeWhereDescription: (arg0: WhereDescription) => Matcher<Model> =
+  (description) => (rawRecord) => {
+    const left = (rawRecord as Record<string, any>)[description.left]
+    const { comparison } = description
+    const operator = operators[comparison.operator]
+    const compRight = comparison.right
+    let right
 
-  // TODO: What about `undefined`s ?
-  if (compRight.value !== undefined) {
-    right = compRight.value
-  } else if (compRight.values) {
-    right = compRight.values
-  } else if (compRight.column) {
-    right = (rawRecord as Record<string, any>)[compRight.column]
-  } else {
-    throw new Error('Invalid comparisonRight')
+    // TODO: What about `undefined`s ?
+    if (compRight.value !== undefined) {
+      right = compRight.value
+    } else if (compRight.values) {
+      right = compRight.values
+    } else if (compRight.column) {
+      right = (rawRecord as Record<string, any>)[compRight.column]
+    } else {
+      throw new Error('Invalid comparisonRight')
+    }
+
+    return operator(left, right)
   }
-
-  return operator(left, right)
-}
 
 const encodeWhere: (arg0: Where) => Matcher<Model> = (where) => {
   switch (where.type) {

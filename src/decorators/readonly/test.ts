@@ -23,8 +23,9 @@ describe('decorators/utils/readonly', () => {
       {
         schema,
       } as any,
-      {} as any)
-    object.test
+      {} as any
+    )
+    void object.test
     expect(() => {
       object.test = 'foo'
     }).toThrow()
@@ -39,8 +40,9 @@ describe('decorators/utils/readonly', () => {
       {
         schema,
       } as any,
-      {} as any)
-    object.test
+      {} as any
+    )
+    void object.test
     expect(() => {
       object.test = 'foo'
     }).toThrow()

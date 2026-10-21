@@ -15,26 +15,27 @@ import { ensureDecoratorUsedProperly } from '../common'
 // Example:
 //   @field('some_field') someField
 const field: Decorator = makeDecorator(
-  (columnName: ColumnName) => (
-    target: Record<string, any>,
-    key: string,
-    descriptor: Record<string, any>
-  ) => {
-    ensureDecoratorUsedProperly(columnName, target, key, descriptor)
-    return {
-      configurable: true,
-      enumerable: true,
+  (columnName: ColumnName) =>
+    (
+      target: Record<string, any>,
+      key: string,
+      descriptor: Record<string, any>
+    ) => {
+      ensureDecoratorUsedProperly(columnName, target, key, descriptor)
+      return {
+        configurable: true,
+        enumerable: true,
 
-      get(): Value {
-        // $FlowFixMe
-        return this.asModel._getRaw(columnName)
-      },
+        get(): Value {
+          // $FlowFixMe
+          return this.asModel._getRaw(columnName)
+        },
 
-      set(value: any): void {
-        // $FlowFixMe
-        this.asModel._setRaw(columnName, value)
-      },
+        set(value: any): void {
+          // $FlowFixMe
+          this.asModel._setRaw(columnName, value)
+        },
+      }
     }
-  }
 )
 export default field

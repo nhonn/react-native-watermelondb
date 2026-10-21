@@ -20,7 +20,7 @@ import type { TableName, ColumnName } from '../../../Schema'
 const safeNameCharacters = /^[a-zA-Z_]\w*$/
 const knownSafeNames: Set<string> = new Set()
 export default function checkName<
-  T extends string | TableName<any> | ColumnName
+  T extends string | TableName<any> | ColumnName,
 >(name: T): T {
   if (knownSafeNames.has(name as string)) {
     return name

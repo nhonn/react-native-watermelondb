@@ -77,7 +77,8 @@ describe('decorators/json', () => {
       } as any,
       {
         extras: '{"elements":[10,false,"foo",{"foo":"bar"}]}',
-      } as any)
+      } as any
+    )
     expect(model.extras).toEqual({
       elements: [
         10,
@@ -94,7 +95,8 @@ describe('decorators/json', () => {
       } as any,
       {
         extras: '-Infinity',
-      } as any)
+      } as any
+    )
     expect(model2.extras).toEqual({
       elements: [],
     })
@@ -104,7 +106,8 @@ describe('decorators/json', () => {
       } as any,
       {
         extras: null,
-      } as any)
+      } as any
+    )
     expect(model3.extras).toEqual({
       elements: [],
     })
@@ -116,7 +119,8 @@ describe('decorators/json', () => {
         extras: {
           data: [1, 2, 3, 4],
         },
-      } as any)
+      } as any
+    )
     expect(model4.extras).toEqual(null)
     const model5 = new MockModel3(
       {
@@ -150,7 +154,8 @@ describe('decorators/json', () => {
       {
         schema,
       } as any,
-      {} as any)
+      {} as any
+    )
     model._isEditing = true
     model.extras = {
       elements: [
@@ -171,7 +176,8 @@ describe('decorators/json', () => {
       {
         schema,
       } as any,
-      {} as any)
+      {} as any
+    )
     model2._isEditing = true
     model2.extras = {
       data: [1, 2, 3, 4],

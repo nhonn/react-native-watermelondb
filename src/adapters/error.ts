@@ -24,7 +24,7 @@ export default class ErrorAdapter {
       'testClone',
     ].forEach((name) => {
       // $FlowFixMe
-      (this as any)[name] = () => throwError(name)
+      ;(this as any)[name] = () => throwError(name)
     })
   }
 
