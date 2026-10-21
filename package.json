@@ -6,6 +6,7 @@
   "module": "./lib/module/index.js",
   "types": "./lib/typescript/commonjs/src/index.d.ts",
   "react-native": "src/index",
+  "sideEffects": false,
   "source": "src/index",
   "scripts": {
     "typecheck": "bun check",
@@ -42,7 +43,11 @@
     "ios/**/*.swift",
     "app.plugin.js",
     "*.podspec",
-    "README.md"
+    "README.md",
+    "!**/test.ts",
+    "!**/*.test.*",
+    "!**/__tests__",
+    "!**/*.map"
   ],
   "workspaces": [
     "example"
