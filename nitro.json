@@ -1,0 +1,26 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": [
+    "watermelondb"
+  ],
+  "ios": {
+    "iosModuleName": "Watermelondb"
+  },
+  "android": {
+    "androidNamespace": [
+      "watermelondb"
+    ],
+    "androidCxxLibName": "Watermelondb"
+  },
+  "autolinking": {
+    "Watermelondb": {
+      "all": {
+        "language": "c++",
+        "implementationClassName": "HybridWatermelondb"
+      }
+    }
+  },
+  "ignorePaths": [
+    "**/node_modules"
+  ]
+}
