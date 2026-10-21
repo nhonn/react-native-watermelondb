@@ -1,5 +1,6 @@
 #pragma once
 
+#include "StatementCache.hpp"
 #include <sqlite3.h>
 #include <string>
 
@@ -19,10 +20,10 @@ private:
   sqlite3* _db = nullptr;
 };
 
-// Resets (and clears bindings of) a cached statement when it goes out of scope. Does not own the statement.
+// Borrows a statement from the cache; resets, clears bindings and returns it on scope exit.
 class SqliteStatement final {
 public:
-  explicit SqliteStatement(sqlite3_stmt* stmt) : _stmt(stmt) {}
+  SqliteStatement(sqlite3_stmt* stmt, StatementCache& cache, const std::string& sql) : _stmt(stmt), _cache(cache), _sql(sql) {}
   ~SqliteStatement();
   SqliteStatement(const SqliteStatement&) = delete;
   SqliteStatement& operator=(const SqliteStatement&) = delete;
@@ -31,6 +32,8 @@ public:
 
 private:
   sqlite3_stmt* _stmt;
+  StatementCache& _cache;
+  const std::string& _sql;
 };
 
 } // namespace watermelondb

@@ -22,6 +22,7 @@ namespace margelo::nitro::watermelondb { struct InitializeResult; }
 #include <NitroModules/Null.hpp>
 #include <variant>
 #include <unordered_map>
+#include "RecordSetJSI.hpp"
 #include <vector>
 #include <optional>
 #include <tuple>
@@ -61,15 +62,27 @@ namespace margelo::nitro::watermelondb {
       virtual std::shared_ptr<Promise<void>> setUpWithSchema(const std::string& schemaSql, double schemaVersion) = 0;
       virtual std::shared_ptr<Promise<void>> setUpWithMigrations(const std::string& migrationSql, double fromVersion, double toVersion) = 0;
       virtual std::shared_ptr<Promise<std::variant<nitro::NullType, std::string, std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>>>> find(const std::string& table, const std::string& id) = 0;
-      virtual std::shared_ptr<Promise<std::vector<std::variant<std::string, std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>>>>> query(const std::string& table, const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
+      virtual std::shared_ptr<Promise<::watermelondb::RecordSet>> query(const std::string& table, const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
       virtual std::shared_ptr<Promise<std::vector<std::string>>> queryIds(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
-      virtual std::shared_ptr<Promise<std::vector<std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>>>> unsafeQueryRaw(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
+      virtual std::shared_ptr<Promise<::watermelondb::RecordSet>> unsafeQueryRaw(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
       virtual std::shared_ptr<Promise<double>> count(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
       virtual std::shared_ptr<Promise<void>> batch(const std::vector<std::tuple<double, std::optional<std::variant<nitro::NullType, std::string>>, std::string, std::vector<std::vector<std::variant<nitro::NullType, bool, std::string, double>>>>>& operations) = 0;
       virtual std::shared_ptr<Promise<std::variant<nitro::NullType, std::string>>> getLocal(const std::string& key) = 0;
       virtual std::shared_ptr<Promise<void>> unsafeExecuteMultiple(const std::string& sql) = 0;
       virtual std::shared_ptr<Promise<void>> unsafeResetDatabase(const std::string& schemaSql, double schemaVersion) = 0;
       virtual std::shared_ptr<Promise<void>> unsafeClose() = 0;
+      virtual InitializeResult initializeSync(double expectedVersion) = 0;
+      virtual void setUpWithSchemaSync(const std::string& schemaSql, double schemaVersion) = 0;
+      virtual void setUpWithMigrationsSync(const std::string& migrationSql, double fromVersion, double toVersion) = 0;
+      virtual std::variant<nitro::NullType, std::string, std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>> findSync(const std::string& table, const std::string& id) = 0;
+      virtual ::watermelondb::RecordSet querySync(const std::string& table, const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
+      virtual std::vector<std::string> queryIdsSync(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
+      virtual ::watermelondb::RecordSet unsafeQueryRawSync(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
+      virtual double countSync(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
+      virtual void batchSync(const std::vector<std::tuple<double, std::optional<std::variant<nitro::NullType, std::string>>, std::string, std::vector<std::vector<std::variant<nitro::NullType, bool, std::string, double>>>>>& operations) = 0;
+      virtual std::variant<nitro::NullType, std::string> getLocalSync(const std::string& key) = 0;
+      virtual void unsafeExecuteMultipleSync(const std::string& sql) = 0;
+      virtual void unsafeResetDatabaseSync(const std::string& schemaSql, double schemaVersion) = 0;
 
     protected:
       // Hybrid Setup

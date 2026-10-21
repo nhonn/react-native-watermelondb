@@ -106,7 +106,7 @@ export class NodeDatabase {
     })
   }
 
-  async initialize(expectedVersion: number): Promise<InitializeResult> {
+  initialize(expectedVersion: number): InitializeResult {
     this._open()
     const v = this._userVersion()
     if (v === expectedVersion) {
@@ -118,25 +118,15 @@ export class NodeDatabase {
     return { code: 'schema_needed' }
   }
 
-  async setUpWithSchema(
-    schemaSql: string,
-    schemaVersion: number
-  ): Promise<void> {
+  setUpWithSchema(schemaSql: string, schemaVersion: number): void {
     this._resetWithSchema(schemaSql, schemaVersion)
   }
 
-  async unsafeResetDatabase(
-    schemaSql: string,
-    schemaVersion: number
-  ): Promise<void> {
+  unsafeResetDatabase(schemaSql: string, schemaVersion: number): void {
     this._resetWithSchema(schemaSql, schemaVersion)
   }
 
-  async setUpWithMigrations(
-    sql: string,
-    fromVersion: number,
-    toVersion: number
-  ): Promise<void> {
+  setUpWithMigrations(sql: string, fromVersion: number, toVersion: number): void {
     const v = this._userVersion()
     if (v !== fromVersion) {
       throw new Error(
@@ -149,7 +139,7 @@ export class NodeDatabase {
     })
   }
 
-  async find(table: string, id: string): Promise<string | Row | null> {
+  find(table: string, id: string): string | Row | null {
     const key = `${table}$${id}`
     if (this._cache.has(key)) {
       return id
@@ -164,11 +154,7 @@ export class NodeDatabase {
     return rows[0]
   }
 
-  async query(
-    table: string,
-    sql: string,
-    args: Value[]
-  ): Promise<(string | Row)[]> {
+  query(table: string, sql: string, args: Value[]): (string | Row)[] {
     return this._rows(sql, args).map((row) => {
       const id = String(row.id)
       const key = `${table}$${id}`
@@ -180,15 +166,15 @@ export class NodeDatabase {
     })
   }
 
-  async queryIds(sql: string, args: Value[]): Promise<string[]> {
+  queryIds(sql: string, args: Value[]): string[] {
     return this._rows(sql, args).map((row) => String(row.id))
   }
 
-  async unsafeQueryRaw(sql: string, args: Value[]): Promise<Row[]> {
+  unsafeQueryRaw(sql: string, args: Value[]): Row[] {
     return this._rows(sql, args)
   }
 
-  async count(sql: string, args: Value[]): Promise<number> {
+  count(sql: string, args: Value[]): number {
     const row = this._rows(sql, args)[0]
     if (!row || row.count === undefined) {
       throw new Error('Invalid count query, can`t find `count` column')
@@ -196,7 +182,7 @@ export class NodeDatabase {
     return Number(row.count)
   }
 
-  async batch(operations: Op[]): Promise<void> {
+  batch(operations: Op[]): void {
     const added: string[] = []
     const removed: string[] = []
     const db = this._open()
@@ -207,7 +193,7 @@ export class NodeDatabase {
           stmt.run(...fixArgs(args))
           if (cacheBehavior !== 0) {
             const key = `${table}$${args[0]}`
-            ;(cacheBehavior === 1 ? added : removed).push(key)
+              ; (cacheBehavior === 1 ? added : removed).push(key)
           }
         })
       })
@@ -216,18 +202,18 @@ export class NodeDatabase {
     removed.forEach((k) => this._cache.delete(k))
   }
 
-  async getLocal(key: string): Promise<string | null> {
+  getLocal(key: string): string | null {
     const row = this._rows('select value from local_storage where key = ?', [
       key,
     ])[0]
     return row ? (row.value as string) : null
   }
 
-  async unsafeExecuteMultiple(sql: string): Promise<void> {
+  unsafeExecuteMultiple(sql: string): void {
     this._open().exec(sql)
   }
 
-  async unsafeClose(): Promise<void> {
+  unsafeClose(): void {
     if (this._db && !sharedMemory.has(this._path)) {
       this._db.close()
     }

@@ -47,6 +47,7 @@ export default class SQLiteAdapter implements DatabaseAdapter {
   dbName: string
   _dispatcher: SqliteDispatcher
   _initPromise: Promise<void>
+  _synchronous: boolean
 
   constructor(options: SQLiteAdapterOptions) {
     // console.log(`---> Initializing new adapter (${this._tag})`)
@@ -56,12 +57,17 @@ export default class SQLiteAdapter implements DatabaseAdapter {
       migrations,
       migrationEvents,
       usesExclusiveLocking = false,
+      synchronous = false,
     } = options
     this.schema = schema
     this.migrations = migrations
     this._migrationEvents = migrationEvents
     this.dbName = this._getName(dbName)
-    this._dispatcher = makeDispatcher(this.dbName, { usesExclusiveLocking })
+    this._synchronous = synchronous
+    this._dispatcher = makeDispatcher(this.dbName, {
+      usesExclusiveLocking,
+      synchronous,
+    })
 
     if (process.env.NODE_ENV !== 'production') {
       validateAdapter(this)
@@ -89,9 +95,10 @@ export default class SQLiteAdapter implements DatabaseAdapter {
       schema: this.schema,
       ...(this.migrations
         ? {
-            migrations: this.migrations,
-          }
+          migrations: this.migrations,
+        }
         : {}),
+      synchronous: this._synchronous,
       ...options,
     })
     await clone._initPromise
@@ -113,6 +120,11 @@ export default class SQLiteAdapter implements DatabaseAdapter {
     args: any[],
     callback: ResultCallback<any>
   ): void {
+    if (this._synchronous) {
+      // _init already ran inside the constructor
+      this._dispatcher.call(name, args, callback)
+      return
+    }
     const go = (): void => this._dispatcher.call(name, args, callback)
     this._initPromise.then(go, go)
   }
@@ -349,9 +361,9 @@ export default class SQLiteAdapter implements DatabaseAdapter {
     if (process.env.NODE_ENV !== 'production') {
       invariant(
         operations &&
-          typeof operations === 'object' &&
-          Object.keys(operations).length === 1 &&
-          (Array.isArray(sqls) || typeof sqlString === 'string'),
+        typeof operations === 'object' &&
+        Object.keys(operations).length === 1 &&
+        (Array.isArray(sqls) || typeof sqlString === 'string'),
         "unsafeExecute expects an { sqls: [ [sql, [args..]], ... ] } or { sqlString: 'foo; bar' } object"
       )
     }

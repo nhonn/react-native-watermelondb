@@ -23,6 +23,9 @@ export type SQLiteAdapterOptions = {
   // Sets exclusive file locking mode in sqlite. Use this ONLY if you need to - e.g. seems to fix
   // mysterious "database is malformed" issues on Android when using Headless JS
   usesExclusiveLocking?: boolean
+  // Run every SQLite call synchronously on the JS thread (no thread hop / Promise per call).
+  // Lower latency for small queries; blocks the JS thread while SQLite works. Default: false.
+  synchronous?: boolean
 }
 // This is the internal format of batch operations
 // It's ugly, but optimized for performance and versatility, e.g.:
@@ -42,14 +45,15 @@ export type NativeBridgeBatchOperation = [
 ]
 export type InitializeStatus =
   | {
-      code: 'ok' | 'schema_needed'
-    }
+    code: 'ok' | 'schema_needed'
+  }
   | {
-      code: 'migrations_needed'
-      databaseVersion: SchemaVersion
-    }
+    code: 'migrations_needed'
+    databaseVersion: SchemaVersion
+  }
 export type SqliteDispatcherOptions = {
   usesExclusiveLocking: boolean
+  synchronous: boolean
 }
 export type SqliteDispatcherMethod =
   | 'initialize'

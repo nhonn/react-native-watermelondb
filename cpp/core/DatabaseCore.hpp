@@ -27,9 +27,9 @@ public:
   void migrate(const std::string& sql, int from, int to);
 
   FindResult find(const std::string& table, const std::string& id);
-  std::vector<CachedRecord> query(const std::string& table, const std::string& sql, const std::vector<SQLiteValue>& args);
+  RecordSet query(const std::string& table, const std::string& sql, const std::vector<SQLiteValue>& args);
   std::vector<std::string> queryIds(const std::string& sql, const std::vector<SQLiteValue>& args);
-  std::vector<RawRow> unsafeQueryRaw(const std::string& sql, const std::vector<SQLiteValue>& args);
+  RecordSet unsafeQueryRaw(const std::string& sql, const std::vector<SQLiteValue>& args);
   double count(const std::string& sql, const std::vector<SQLiteValue>& args);
   LocalValue getLocal(const std::string& key);
   void executeMultiple(const std::string& sql);
@@ -39,10 +39,9 @@ public:
 private:
   sqlite3* db() const;
   [[noreturn]] void throwDbError(const std::string& message, const std::string& sql = "") const;
-  sqlite3_stmt* prepare(const std::string& sql);
+  SqliteStatement prepare(const std::string& sql);
   void bindArgs(sqlite3_stmt* stmt, const std::vector<SQLiteValue>& args, const std::string& sql);
   void step(sqlite3_stmt* stmt, const std::string& sql); // expects SQLITE_DONE
-  void finalizeStatements();
   void execSimple(const char* sql);
   void rollbackQuietly();
   RawRow readRow(sqlite3_stmt* stmt);
@@ -50,7 +49,7 @@ private:
   std::string _path;
   bool _exclusive;
   std::unique_ptr<SqliteDb> _db;
-  std::unordered_map<std::string, sqlite3_stmt*> _statements;
+  StatementCache _statements;
   std::unordered_set<std::string> _cache; // "table$id"
 };
 

@@ -5,6 +5,7 @@
 #else
 #include "Null.hpp"
 #endif
+#include <memory>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -18,7 +19,15 @@ namespace watermelondb {
 
 using SQLiteValue = std::variant<margelo::nitro::NullType, bool, std::string, double>;
 using RawRow = std::unordered_map<std::string, SQLiteValue>;
-using CachedRecord = std::variant<std::string, RawRow>;
+// Query result: column names once; per row either the id (record already cached in JS) or values in `columns` order.
+struct RecordSetData {
+  std::vector<std::string> columns;
+  std::vector<std::variant<std::string, std::vector<SQLiteValue>>> rows;
+};
+// Shared + const so Nitro's Promise resolution copies a pointer, not the rows.
+struct RecordSet {
+  std::shared_ptr<const RecordSetData> data = std::make_shared<const RecordSetData>();
+};
 using FindResult = std::variant<margelo::nitro::NullType, std::string, RawRow>;
 using LocalValue = std::variant<margelo::nitro::NullType, std::string>;
 using BatchTable = std::optional<std::variant<margelo::nitro::NullType, std::string>>;

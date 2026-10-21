@@ -9,8 +9,14 @@ import { NodeDatabase } from './NodeDatabase'
 class NodeDispatcher implements SqliteDispatcher {
   _db: NodeDatabase
 
-  constructor(path: string, { usesExclusiveLocking }: SqliteDispatcherOptions) {
+  _synchronous: boolean
+
+  constructor(
+    path: string,
+    { usesExclusiveLocking, synchronous }: SqliteDispatcherOptions
+  ) {
     this._db = new NodeDatabase(path, usesExclusiveLocking)
+    this._synchronous = synchronous
   }
 
   call(
@@ -18,10 +24,25 @@ class NodeDispatcher implements SqliteDispatcher {
     args: any[],
     callback: ResultCallback<any>
   ): void {
-    ;(this._db[name] as (...a: any[]) => Promise<unknown>)(...args).then(
-      (value) => callback({ value }),
-      (error) => callback({ error: new Error(error?.message) })
-    )
+    const run = (): unknown =>
+      (this._db[name] as (...a: any[]) => unknown)(...args)
+    if (this._synchronous) {
+      let value: unknown
+      try {
+        value = run()
+      } catch (error: any) {
+        callback({ error: new Error(error?.message) })
+        return
+      }
+      callback({ value })
+      return
+    }
+    Promise.resolve()
+      .then(run)
+      .then(
+        (value) => callback({ value }),
+        (error) => callback({ error: new Error(error?.message) })
+      )
   }
 }
 

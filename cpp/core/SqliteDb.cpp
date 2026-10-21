@@ -20,6 +20,7 @@ SqliteDb::~SqliteDb() {
 SqliteStatement::~SqliteStatement() {
   sqlite3_reset(_stmt);
   sqlite3_clear_bindings(_stmt);
+  _cache.put(_sql, _stmt);
 }
 
 } // namespace watermelondb

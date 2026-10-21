@@ -1,4 +1,5 @@
 #include "DatabaseCore.hpp"
+#include <algorithm>
 #include <cassert>
 #include <cstdio>
 
@@ -12,6 +13,12 @@ static NativeBatchOperation insertOp(double cache, const char* id, const char* n
                               BatchTable(std::string("tasks")),
                               "insert into tasks (id, _status, _changed, name) values (?, '', '', ?)",
                               {{S(id), S(name)}}};
+}
+
+static const SQLiteValue& col(const RecordSet& set, size_t row, const char* name) {
+  const auto& columns = set.data->columns;
+  const size_t i = static_cast<size_t>(std::find(columns.begin(), columns.end(), name) - columns.begin());
+  return std::get<std::vector<SQLiteValue>>(set.data->rows[row])[i];
 }
 
 template <typename F> static bool throws(F f) {
@@ -45,9 +52,9 @@ int main() {
   assert(std::holds_alternative<margelo::nitro::NullType>(core.find("tasks", "zzz")));
 
   auto records = core.query("tasks", "select * from tasks order by id", {});
-  assert(records.size() == 3);
-  assert(std::get<std::string>(records[0]) == "a");
-  assert(std::get<std::string>(records[2]) == "c");
+  assert(records.data->rows.size() == 3);
+  assert(std::get<std::string>(records.data->rows[0]) == "a");
+  assert(std::get<std::string>(records.data->rows[2]) == "c");
 
   assert(core.queryIds("select id from tasks where name = ?", {S("B")}) == std::vector<std::string>{"b"});
   assert(core.count("select count(*) as count from tasks", {}) == 3);
@@ -71,9 +78,45 @@ int main() {
   assert(throws([&] { core.migrate("alter table tasks add column extra2;", 1, 3); }));
 
   auto raw = core.unsafeQueryRaw("select * from tasks where id = ?", {S("b")});
-  assert(raw.size() == 1);
-  assert(std::get<std::string>(raw[0].at("name")) == "B");
-  assert(std::holds_alternative<margelo::nitro::NullType>(raw[0].at("extra")));
+  assert(raw.data->rows.size() == 1);
+  assert(std::get<std::string>(col(raw, 0, "name")) == "B");
+  assert(std::holds_alternative<margelo::nitro::NullType>(col(raw, 0, "extra")));
+
+  // re-prepare: the query cached before the migrate must report the new column
+  core.batch({insertOp(0, "e", "E")});
+  auto reprepared = core.query("tasks", "select * from tasks order by id", {});
+  const auto& cols = reprepared.data->columns;
+  assert(std::find(cols.begin(), cols.end(), "extra") != cols.end());
+  const size_t last = reprepared.data->rows.size() - 1;
+  assert(std::get<std::vector<SQLiteValue>>(reprepared.data->rows[last]).size() == cols.size());
+  assert(std::holds_alternative<margelo::nitro::NullType>(col(reprepared, last, "extra")));
+  assert(std::get<std::string>(reprepared.data->rows[0]) == "b");
+
+  assert(throws([&] { core.query("tasks", "select name from tasks where 0", {}); }));
+
+  // LRU bound: more distinct statements than capacity, then reuse
+  for (int i = 0; i < 300; i++) {
+    core.queryIds("select id from tasks where name = 'n" + std::to_string(i) + "'", {});
+  }
+  assert(core.queryIds("select id from tasks where name = 'n0'", {}).empty());
+  assert(std::get<std::string>(core.find("tasks", "b")) == "b");
+
+  sqlite3* mem = nullptr;
+  assert(sqlite3_open(":memory:", &mem) == SQLITE_OK);
+  {
+    StatementCache cache;
+    for (int i = 0; i <= 128; i++) {
+      sqlite3_stmt* stmt = nullptr;
+      assert(sqlite3_prepare_v2(mem, ("select " + std::to_string(i)).c_str(), -1, &stmt, nullptr) == SQLITE_OK);
+      cache.put("select " + std::to_string(i), stmt);
+    }
+    assert(cache.size() == StatementCache::kCapacity);
+    assert(cache.take("select 0") == nullptr);
+    sqlite3_stmt* taken = cache.take("select 128");
+    assert(taken != nullptr);
+    sqlite3_finalize(taken);
+  }
+  sqlite3_close(mem);
 
   core.close();
   std::puts("DatabaseCore tests passed");

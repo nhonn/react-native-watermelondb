@@ -44,19 +44,15 @@ void DatabaseCore::open() {
   }
 }
 
-sqlite3_stmt* DatabaseCore::prepare(const std::string& sql) {
-  auto it = _statements.find(sql);
-  if (it != _statements.end()) {
-    sqlite3_reset(it->second);
-    return it->second;
+SqliteStatement DatabaseCore::prepare(const std::string& sql) {
+  sqlite3_stmt* stmt = _statements.take(sql); // cached statements are always reset
+  if (stmt == nullptr) {
+    if (sqlite3_prepare_v2(db(), sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+      sqlite3_finalize(stmt);
+      throwDbError("Failed to prepare query statement", sql);
+    }
   }
-  sqlite3_stmt* stmt = nullptr;
-  if (sqlite3_prepare_v2(db(), sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
-    sqlite3_finalize(stmt);
-    throwDbError("Failed to prepare query statement", sql);
-  }
-  _statements.emplace(sql, stmt);
-  return stmt;
+  return SqliteStatement(stmt, _statements, sql);
 }
 
 // Strings are bound with SQLITE_STATIC: `args` must outlive the statement's use (SqliteStatement clears bindings).
@@ -89,13 +85,6 @@ void DatabaseCore::step(sqlite3_stmt* stmt, const std::string& sql) {
   }
 }
 
-void DatabaseCore::finalizeStatements() {
-  for (auto& entry : _statements) {
-    sqlite3_finalize(entry.second);
-  }
-  _statements.clear();
-}
-
 void DatabaseCore::execSimple(const char* sql) {
   char* err = nullptr;
   if (sqlite3_exec(db(), sql, nullptr, nullptr, &err) != SQLITE_OK) {
@@ -123,8 +112,9 @@ void DatabaseCore::executeMultiple(const std::string& sql) {
 }
 
 int DatabaseCore::getUserVersion() {
-  sqlite3_stmt* stmt = prepare("pragma user_version");
-  SqliteStatement guard(stmt);
+  const std::string sql = "pragma user_version"; // the guard borrows it
+  SqliteStatement statement = prepare(sql);
+  sqlite3_stmt* stmt = statement.get();
   if (sqlite3_step(stmt) != SQLITE_ROW) {
     throwDbError("Failed to read user_version");
   }
@@ -137,7 +127,7 @@ void DatabaseCore::setUserVersion(int version) {
 
 void DatabaseCore::resetWithSchema(const std::string& schemaSql, int version) {
   db();
-  finalizeStatements();
+  _statements.clear();
   if (sqlite3_db_config(db(), SQLITE_DBCONFIG_RESET_DATABASE, 1, 0) != SQLITE_OK) {
     throwDbError("Failed to enable database reset");
   }
@@ -172,28 +162,45 @@ void DatabaseCore::migrate(const std::string& sql, int from, int to) {
   }
 }
 
+static SQLiteValue readValue(sqlite3_stmt* stmt, int column) {
+  switch (sqlite3_column_type(stmt, column)) {
+    case SQLITE_INTEGER:
+      return static_cast<double>(sqlite3_column_int64(stmt, column));
+    case SQLITE_FLOAT:
+      return sqlite3_column_double(stmt, column);
+    case SQLITE_TEXT:
+      return std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, column)), static_cast<size_t>(sqlite3_column_bytes(stmt, column)));
+    case SQLITE_NULL:
+      return margelo::nitro::null;
+    default:
+      throw std::runtime_error("BLOB columns are not supported");
+  }
+}
+
+static std::vector<SQLiteValue> readValues(sqlite3_stmt* stmt, size_t columns) {
+  std::vector<SQLiteValue> values;
+  values.reserve(columns);
+  for (size_t i = 0; i < columns; i++) {
+    values.push_back(readValue(stmt, static_cast<int>(i)));
+  }
+  return values;
+}
+
+static std::vector<std::string> columnNames(sqlite3_stmt* stmt) {
+  const int count = sqlite3_column_count(stmt);
+  std::vector<std::string> names;
+  names.reserve(static_cast<size_t>(count));
+  for (int i = 0; i < count; i++) {
+    names.emplace_back(sqlite3_column_name(stmt, i));
+  }
+  return names;
+}
+
 RawRow DatabaseCore::readRow(sqlite3_stmt* stmt) {
   RawRow row;
   const int columns = sqlite3_column_count(stmt);
   for (int i = 0; i < columns; i++) {
-    std::string name = sqlite3_column_name(stmt, i);
-    switch (sqlite3_column_type(stmt, i)) {
-      case SQLITE_INTEGER:
-        row[std::move(name)] = static_cast<double>(sqlite3_column_int64(stmt, i));
-        break;
-      case SQLITE_FLOAT:
-        row[std::move(name)] = sqlite3_column_double(stmt, i);
-        break;
-      case SQLITE_TEXT:
-        row[std::move(name)] = std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i)),
-                                           static_cast<size_t>(sqlite3_column_bytes(stmt, i)));
-        break;
-      case SQLITE_NULL:
-        row[std::move(name)] = margelo::nitro::null;
-        break;
-      default:
-        throw std::runtime_error("BLOB columns are not supported");
-    }
+    row[sqlite3_column_name(stmt, i)] = readValue(stmt, i);
   }
   return row;
 }
@@ -204,8 +211,8 @@ FindResult DatabaseCore::find(const std::string& table, const std::string& id) {
     return id;
   }
   const std::string sql = "select * from \"" + table + "\" where id == ? limit 1";
-  sqlite3_stmt* stmt = prepare(sql);
-  SqliteStatement guard(stmt);
+  SqliteStatement statement = prepare(sql);
+  sqlite3_stmt* stmt = statement.get();
   const std::vector<SQLiteValue> args{SQLiteValue(id)}; // must outlive step (SQLITE_STATIC)
   bindArgs(stmt, args, sql);
   const int result = sqlite3_step(stmt);
@@ -220,44 +227,55 @@ FindResult DatabaseCore::find(const std::string& table, const std::string& id) {
   return row;
 }
 
-std::vector<CachedRecord> DatabaseCore::query(const std::string& table, const std::string& sql, const std::vector<SQLiteValue>& args) {
-  sqlite3_stmt* stmt = prepare(sql);
-  SqliteStatement guard(stmt);
+RecordSet DatabaseCore::query(const std::string& table, const std::string& sql, const std::vector<SQLiteValue>& args) {
+  SqliteStatement statement = prepare(sql);
+  sqlite3_stmt* stmt = statement.get();
   bindArgs(stmt, args, sql);
 
+  RecordSetData data;
   int idColumn = -1;
-  const int columns = sqlite3_column_count(stmt);
-  for (int i = 0; i < columns; i++) {
-    if (std::string(sqlite3_column_name(stmt, i)) == "id") {
-      idColumn = i;
-      break;
+  bool captured = false;
+  // Columns are read after the first step: step can re-prepare the statement after a schema change.
+  auto capture = [&] {
+    data.columns = columnNames(stmt);
+    for (size_t i = 0; i < data.columns.size(); i++) {
+      if (data.columns[i] == "id") {
+        idColumn = static_cast<int>(i);
+        break;
+      }
     }
-  }
-  if (idColumn < 0) {
-    throw std::runtime_error("Query must return an 'id' column, sql: " + sql);
-  }
+    if (idColumn < 0) {
+      throw std::runtime_error("Query must return an 'id' column, sql: " + sql);
+    }
+    captured = true;
+  };
 
-  std::vector<CachedRecord> records;
   int result;
   while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
+    if (!captured) {
+      capture();
+    }
     std::string id(reinterpret_cast<const char*>(sqlite3_column_text(stmt, idColumn)), static_cast<size_t>(sqlite3_column_bytes(stmt, idColumn)));
-    const std::string key = table + "$" + id;
+    std::string key = table + "$" + id;
     if (_cache.count(key) != 0) {
-      records.emplace_back(std::move(id));
+      data.rows.emplace_back(std::move(id));
     } else {
-      records.emplace_back(readRow(stmt));
-      _cache.insert(key);
+      data.rows.emplace_back(readValues(stmt, data.columns.size()));
+      _cache.insert(std::move(key));
     }
   }
   if (result != SQLITE_DONE) {
     throwDbError("Failed to execute query", sql);
   }
-  return records;
+  if (!captured) {
+    capture(); // validates the 'id' column for empty results
+  }
+  return RecordSet{std::make_shared<const RecordSetData>(std::move(data))};
 }
 
 std::vector<std::string> DatabaseCore::queryIds(const std::string& sql, const std::vector<SQLiteValue>& args) {
-  sqlite3_stmt* stmt = prepare(sql);
-  SqliteStatement guard(stmt);
+  SqliteStatement statement = prepare(sql);
+  sqlite3_stmt* stmt = statement.get();
   bindArgs(stmt, args, sql);
   std::vector<std::string> ids;
   int result;
@@ -270,24 +288,32 @@ std::vector<std::string> DatabaseCore::queryIds(const std::string& sql, const st
   return ids;
 }
 
-std::vector<RawRow> DatabaseCore::unsafeQueryRaw(const std::string& sql, const std::vector<SQLiteValue>& args) {
-  sqlite3_stmt* stmt = prepare(sql);
-  SqliteStatement guard(stmt);
+RecordSet DatabaseCore::unsafeQueryRaw(const std::string& sql, const std::vector<SQLiteValue>& args) {
+  SqliteStatement statement = prepare(sql);
+  sqlite3_stmt* stmt = statement.get();
   bindArgs(stmt, args, sql);
-  std::vector<RawRow> rows;
+  RecordSetData data;
+  bool captured = false;
   int result;
   while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
-    rows.push_back(readRow(stmt));
+    if (!captured) {
+      data.columns = columnNames(stmt);
+      captured = true;
+    }
+    data.rows.emplace_back(readValues(stmt, data.columns.size()));
   }
   if (result != SQLITE_DONE) {
     throwDbError("Failed to execute unsafeQueryRaw", sql);
   }
-  return rows;
+  if (!captured) {
+    data.columns = columnNames(stmt);
+  }
+  return RecordSet{std::make_shared<const RecordSetData>(std::move(data))};
 }
 
 double DatabaseCore::count(const std::string& sql, const std::vector<SQLiteValue>& args) {
-  sqlite3_stmt* stmt = prepare(sql);
-  SqliteStatement guard(stmt);
+  SqliteStatement statement = prepare(sql);
+  sqlite3_stmt* stmt = statement.get();
   bindArgs(stmt, args, sql);
   if (sqlite3_step(stmt) != SQLITE_ROW) {
     throwDbError("Failed to execute count", sql);
@@ -297,8 +323,8 @@ double DatabaseCore::count(const std::string& sql, const std::vector<SQLiteValue
 
 LocalValue DatabaseCore::getLocal(const std::string& key) {
   const std::string sql = "select value from local_storage where key = ?";
-  sqlite3_stmt* stmt = prepare(sql);
-  SqliteStatement guard(stmt);
+  SqliteStatement statement = prepare(sql);
+  sqlite3_stmt* stmt = statement.get();
   const std::vector<SQLiteValue> args{SQLiteValue(key)}; // must outlive step (SQLITE_STATIC)
   bindArgs(stmt, args, sql);
   const int result = sqlite3_step(stmt);
@@ -332,9 +358,10 @@ void DatabaseCore::batch(const std::vector<NativeBatchOperation>& operations) {
         tableName = *t;
       }
 
-      sqlite3_stmt* stmt = prepare(sql);
+      SqliteStatement statement = prepare(sql);
+      sqlite3_stmt* stmt = statement.get();
       for (const auto& args : argBatches) {
-        SqliteStatement guard(stmt);
+        sqlite3_reset(stmt);
         bindArgs(stmt, args, sql);
         step(stmt, sql);
         if (cacheBehavior != 0) {
@@ -362,7 +389,7 @@ void DatabaseCore::batch(const std::vector<NativeBatchOperation>& operations) {
 }
 
 void DatabaseCore::close() {
-  finalizeStatements();
+  _statements.clear();
   _cache.clear();
   _db.reset();
 }

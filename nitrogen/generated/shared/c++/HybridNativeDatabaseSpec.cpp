@@ -27,6 +27,18 @@ namespace margelo::nitro::watermelondb {
       prototype.registerHybridMethod("unsafeExecuteMultiple", &HybridNativeDatabaseSpec::unsafeExecuteMultiple);
       prototype.registerHybridMethod("unsafeResetDatabase", &HybridNativeDatabaseSpec::unsafeResetDatabase);
       prototype.registerHybridMethod("unsafeClose", &HybridNativeDatabaseSpec::unsafeClose);
+      prototype.registerHybridMethod("initializeSync", &HybridNativeDatabaseSpec::initializeSync);
+      prototype.registerHybridMethod("setUpWithSchemaSync", &HybridNativeDatabaseSpec::setUpWithSchemaSync);
+      prototype.registerHybridMethod("setUpWithMigrationsSync", &HybridNativeDatabaseSpec::setUpWithMigrationsSync);
+      prototype.registerHybridMethod("findSync", &HybridNativeDatabaseSpec::findSync);
+      prototype.registerHybridMethod("querySync", &HybridNativeDatabaseSpec::querySync);
+      prototype.registerHybridMethod("queryIdsSync", &HybridNativeDatabaseSpec::queryIdsSync);
+      prototype.registerHybridMethod("unsafeQueryRawSync", &HybridNativeDatabaseSpec::unsafeQueryRawSync);
+      prototype.registerHybridMethod("countSync", &HybridNativeDatabaseSpec::countSync);
+      prototype.registerHybridMethod("batchSync", &HybridNativeDatabaseSpec::batchSync);
+      prototype.registerHybridMethod("getLocalSync", &HybridNativeDatabaseSpec::getLocalSync);
+      prototype.registerHybridMethod("unsafeExecuteMultipleSync", &HybridNativeDatabaseSpec::unsafeExecuteMultipleSync);
+      prototype.registerHybridMethod("unsafeResetDatabaseSync", &HybridNativeDatabaseSpec::unsafeResetDatabaseSync);
     });
   }
 

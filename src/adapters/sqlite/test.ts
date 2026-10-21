@@ -4,7 +4,7 @@ import commonTests from '../__tests__/commonTests'
 import SqliteAdapter from './index'
 import DatabaseAdapterCompat from '../compat'
 
-describe('SQLiteAdapter', () => {
+describe.each([false, true])('SQLiteAdapter (synchronous: %s)', (synchronous) => {
   // NOTE: one test uses a .tmp/xx path, so the directory must exist
   fs.mkdirSync('.tmp', { recursive: true })
 
@@ -14,10 +14,11 @@ describe('SQLiteAdapter', () => {
     // eslint-disable-next-line jest/valid-title
     it(name, async () => {
       const dbName = `file:test${Math.random()}?mode=memory&cache=shared`
-      const extraAdapterOptions = { dbName }
+      const extraAdapterOptions = { dbName, synchronous }
       const adapter = new SqliteAdapter({
         dbName,
         schema: testSchema,
+        synchronous,
       })
 
       await adapter.initializingPromise
