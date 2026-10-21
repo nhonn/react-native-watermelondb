@@ -7,10 +7,11 @@
 
 #import <Foundation/Foundation.h>
 #import <NitroModules/HybridObjectRegistry.hpp>
-
+#import "Watermelondb-Swift-Cxx-Umbrella.hpp"
 #import <type_traits>
 
-#include "HybridWatermelondb.hpp"
+#include "HybridNativeDatabaseFactory.hpp"
+#include "HybridDatabasePathsSpecSwift.hpp"
 
 @interface WatermelondbAutolinking : NSObject
 @end
@@ -22,12 +23,19 @@
   using namespace margelo::nitro::watermelondb;
 
   HybridObjectRegistry::registerHybridObjectConstructor(
-    "Watermelondb",
+    "NativeDatabaseFactory",
     []() -> std::shared_ptr<HybridObject> {
-      static_assert(std::is_default_constructible_v<HybridWatermelondb>,
-                    "The HybridObject \"HybridWatermelondb\" is not default-constructible! "
+      static_assert(std::is_default_constructible_v<HybridNativeDatabaseFactory>,
+                    "The HybridObject \"HybridNativeDatabaseFactory\" is not default-constructible! "
                     "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
-      return std::make_shared<HybridWatermelondb>();
+      return std::make_shared<HybridNativeDatabaseFactory>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "DatabasePaths",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridDatabasePathsSpec> hybridObject = Watermelondb::WatermelondbAutolinking::createDatabasePaths();
+      return hybridObject;
     }
   );
 }

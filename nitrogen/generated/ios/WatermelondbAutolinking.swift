@@ -12,5 +12,15 @@ import NitroModules
 public final class WatermelondbAutolinking {
   public typealias bridge = margelo.nitro.watermelondb.bridge.swift
 
+  public static func createDatabasePaths() -> bridge.std__shared_ptr_HybridDatabasePathsSpec_ {
+    let hybridObject = HybridDatabasePaths()
+    return { () -> bridge.std__shared_ptr_HybridDatabasePathsSpec_ in
+      let __cxxWrapped = hybridObject.getCxxWrapper()
+      return __cxxWrapped.getCxxPart()
+    }()
+  }
   
+  public static func isDatabasePathsRecyclable() -> Bool {
+    return HybridDatabasePaths.self is any RecyclableView.Type
+  }
 }

@@ -8,10 +8,26 @@
 #include "Watermelondb-Swift-Cxx-Bridge.hpp"
 
 // Include C++ implementation defined types
-
+#include "HybridDatabasePathsSpecSwift.hpp"
+#include "Watermelondb-Swift-Cxx-Umbrella.hpp"
+#include <NitroModules/NitroDefines.hpp>
 
 namespace margelo::nitro::watermelondb::bridge::swift {
 
-  
+  // pragma MARK: std::shared_ptr<HybridDatabasePathsSpec>
+  std::shared_ptr<HybridDatabasePathsSpec> create_std__shared_ptr_HybridDatabasePathsSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    Watermelondb::HybridDatabasePathsSpec_cxx swiftPart = Watermelondb::HybridDatabasePathsSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::watermelondb::HybridDatabasePathsSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridDatabasePathsSpec_(std__shared_ptr_HybridDatabasePathsSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::watermelondb::HybridDatabasePathsSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::watermelondb::HybridDatabasePathsSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridDatabasePathsSpec\" is not implemented in Swift!");
+    }
+    #endif
+    Watermelondb::HybridDatabasePathsSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
 
 } // namespace margelo::nitro::watermelondb::bridge::swift

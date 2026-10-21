@@ -1,0 +1,40 @@
+import type { Decorator } from '../../utils/common/makeDecorator'
+import makeDecorator from '../../utils/common/makeDecorator'
+import type { Value } from '../../QueryDescription'
+import '../../QueryDescription'
+import type { ColumnName } from '../../Schema'
+import '../../Schema'
+import { ensureDecoratorUsedProperly } from '../common'
+// Defines a model property
+//
+// Returns and sets values as-is, except that `undefined` and missing fields are normalized to `null`
+// If you have a more specific propety, use the correct decorator (@boolean, @text, etc.)
+//
+// Pass the database column name as an argument
+//
+// Example:
+//   @field('some_field') someField
+const field: Decorator = makeDecorator(
+  (columnName: ColumnName) => (
+    target: Record<string, any>,
+    key: string,
+    descriptor: Record<string, any>
+  ) => {
+    ensureDecoratorUsedProperly(columnName, target, key, descriptor)
+    return {
+      configurable: true,
+      enumerable: true,
+
+      get(): Value {
+        // $FlowFixMe
+        return this.asModel._getRaw(columnName)
+      },
+
+      set(value: any): void {
+        // $FlowFixMe
+        this.asModel._setRaw(columnName, value)
+      },
+    }
+  }
+)
+export default field

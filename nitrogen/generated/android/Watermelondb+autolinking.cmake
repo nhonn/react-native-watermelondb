@@ -33,9 +33,11 @@ target_sources(
   # Autolinking Setup
   ../nitrogen/generated/android/WatermelondbOnLoad.cpp
   # Shared Nitrogen C++ sources
-  ../nitrogen/generated/shared/c++/HybridWatermelondbSpec.cpp
+  ../nitrogen/generated/shared/c++/HybridDatabasePathsSpec.cpp
+  ../nitrogen/generated/shared/c++/HybridNativeDatabaseSpec.cpp
+  ../nitrogen/generated/shared/c++/HybridNativeDatabaseFactorySpec.cpp
   # Android-specific Nitrogen C++ sources
-  
+  ../nitrogen/generated/android/c++/JHybridDatabasePathsSpec.cpp
 )
 
 # From node_modules/react-native/ReactAndroid/cmake-utils/folly-flags.cmake

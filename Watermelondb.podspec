@@ -10,17 +10,18 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => min_ios_version_supported, :visionos => 1.0 }
+  s.platforms    = { :ios => min_ios_version_supported }
   s.source       = { :git => "https://github.com/noahnguyen/react-native-watermelondb.git", :tag => "#{s.version}" }
 
   s.source_files = [
     # Implementation (Swift)
     "ios/**/*.{swift}",
-    # Autolinking/Registration (Objective-C++)
-    "ios/**/*.{m,mm}",
     # Implementation (C++ objects)
     "cpp/**/*.{hpp,cpp}",
   ]
+
+  s.libraries = "sqlite3"
+  s.exclude_files = "cpp/vendor/**"
 
   load 'nitrogen/generated/ios/Watermelondb+autolinking.rb'
   add_nitrogen_files(s)

@@ -89,3 +89,7 @@ Pods/
 !.env.example
 *.tgz
 coverage/
+
+# C++ host test build output
+.cache/
+.tmp/

@@ -8,13 +8,16 @@
 #pragma once
 
 // Forward declarations of C++ defined types
-
+// Forward declaration of `HybridDatabasePathsSpec` to properly resolve imports.
+namespace margelo::nitro::watermelondb { class HybridDatabasePathsSpec; }
 
 // Forward declarations of Swift defined types
-
+// Forward declaration of `HybridDatabasePathsSpec_cxx` to properly resolve imports.
+namespace Watermelondb { class HybridDatabasePathsSpec_cxx; }
 
 // Include C++ defined types
-
+#include "HybridDatabasePathsSpec.hpp"
+#include <memory>
 
 /**
  * Contains specialized versions of C++ templated types so they can be accessed from Swift,
@@ -22,6 +25,16 @@
  */
 namespace margelo::nitro::watermelondb::bridge::swift {
 
+  // pragma MARK: std::shared_ptr<HybridDatabasePathsSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridDatabasePathsSpec>`.
+   */
+  using std__shared_ptr_HybridDatabasePathsSpec_ = std::shared_ptr<HybridDatabasePathsSpec>;
+  std::shared_ptr<HybridDatabasePathsSpec> create_std__shared_ptr_HybridDatabasePathsSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridDatabasePathsSpec_(std__shared_ptr_HybridDatabasePathsSpec_ cppType);
   
+  // pragma MARK: std::weak_ptr<HybridDatabasePathsSpec>
+  using std__weak_ptr_HybridDatabasePathsSpec_ = std::weak_ptr<HybridDatabasePathsSpec>;
+  inline std__weak_ptr_HybridDatabasePathsSpec_ weakify_std__shared_ptr_HybridDatabasePathsSpec_(const std::shared_ptr<HybridDatabasePathsSpec>& strong) noexcept { return strong; }
 
 } // namespace margelo::nitro::watermelondb::bridge::swift

@@ -15,7 +15,9 @@
 #include <fbjni/fbjni.h>
 #include <NitroModules/HybridObjectRegistry.hpp>
 
-#include "HybridWatermelondb.hpp"
+#include "JHybridDatabasePathsSpec.hpp"
+#include "HybridNativeDatabaseFactory.hpp"
+#include <NitroModules/DefaultConstructableObject.hpp>
 
 namespace margelo::nitro::watermelondb {
 
@@ -25,23 +27,36 @@ int initialize(JavaVM* vm) {
   });
 }
 
-
+struct JHybridDatabasePathsSpecImpl: public jni::JavaClass<JHybridDatabasePathsSpecImpl, JHybridDatabasePathsSpec::JavaPart> {
+  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/watermelondb/HybridDatabasePaths;";
+  static std::shared_ptr<JHybridDatabasePathsSpec> create() {
+    static const auto constructorFn = javaClassStatic()->getConstructor<JHybridDatabasePathsSpecImpl::javaobject()>();
+    jni::local_ref<JHybridDatabasePathsSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
+    return javaPart->getJHybridDatabasePathsSpec();
+  }
+};
 
 void registerAllNatives() {
   using namespace margelo::nitro;
   using namespace margelo::nitro::watermelondb;
 
   // Register native JNI methods
-  
+  margelo::nitro::watermelondb::JHybridDatabasePathsSpec::CxxPart::registerNatives();
 
   // Register Nitro Hybrid Objects
   HybridObjectRegistry::registerHybridObjectConstructor(
-    "Watermelondb",
+    "NativeDatabaseFactory",
     []() -> std::shared_ptr<HybridObject> {
-      static_assert(std::is_default_constructible_v<HybridWatermelondb>,
-                    "The HybridObject \"HybridWatermelondb\" is not default-constructible! "
+      static_assert(std::is_default_constructible_v<HybridNativeDatabaseFactory>,
+                    "The HybridObject \"HybridNativeDatabaseFactory\" is not default-constructible! "
                     "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
-      return std::make_shared<HybridWatermelondb>();
+      return std::make_shared<HybridNativeDatabaseFactory>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "DatabasePaths",
+    []() -> std::shared_ptr<HybridObject> {
+      return JHybridDatabasePathsSpecImpl::create();
     }
   );
 }

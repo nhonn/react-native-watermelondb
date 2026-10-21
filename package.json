@@ -4,16 +4,19 @@
   "description": "react-native-watermelondb is a react native package built with Nitro",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
-  "types": "./lib/typescript/src/index.d.ts",
+  "types": "./lib/typescript/commonjs/src/index.d.ts",
   "react-native": "src/index",
   "source": "src/index",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "specs": "nitrogen --logLevel=\"debug\"",
+    "test:cpp": "mkdir -p .cache && c++ -std=c++20 -Wall -Wextra -Icpp/core -Inode_modules/react-native-nitro-modules/cpp/core -Inode_modules/react-native-nitro-modules/cpp/utils cpp/core/SqliteDb.cpp cpp/core/DatabaseCore.cpp test/cpp/DatabaseCoreTest.cpp -lsqlite3 -o .cache/wmdb-core-test && ./.cache/wmdb-core-test",
     "clean": "git clean -dfX",
     "release": "semantic-release",
     "build": "bun run typecheck && bob build",
     "codegen": "nitrogen --logLevel=\"debug\" && bun run build",
-    "postcodegen": "bun --cwd example pod"
+    "postcodegen": "bun --cwd example pod",
+    "test": "jest"
   },
   "keywords": [
     "react-native",
@@ -31,10 +34,6 @@
     "android/gradle.properties",
     "android/CMakeLists.txt",
     "android/src",
-    "ios/**/*.h",
-    "ios/**/*.m",
-    "ios/**/*.mm",
-    "ios/**/*.cpp",
     "ios/**/*.swift",
     "app.plugin.js",
     "*.podspec",
@@ -53,17 +52,28 @@
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-decorators": "^7",
     "@jamesacarr/eslint-formatter-github-actions": "^0.2.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
+    "@types/hoist-non-react-statics": "^3.3.7",
     "@types/jest": "^29.5.12",
+    "@types/lodash.clonedeep": "^4.5.9",
+    "@types/node": "^26.6.5",
     "@types/react": "19.2.0",
+    "@types/react-test-renderer": "^19.3.0",
+    "babel-jest": "^29",
+    "big-list-of-naughty-strings": "^1.0.0",
+    "conventional-changelog-conventionalcommits": "^10.2.1",
+    "jest": "^29",
+    "lodash.clonedeep": "^4.5.0",
     "nitrogen": "0.37.1",
+    "rambdax": "2.15.0",
     "react": "19.2.3",
     "react-native": "0.86.0",
     "react-native-builder-bob": "^0.40.18",
     "react-native-nitro-modules": "0.37.1",
-    "conventional-changelog-conventionalcommits": "^10.2.1",
+    "react-test-renderer": "19.2.3",
     "semantic-release": "^25.0.7",
     "typescript": "^6.0.3"
   },
@@ -110,14 +120,57 @@
     "source": "src",
     "output": "lib",
     "targets": [
-      "commonjs",
-      "module",
+      [
+        "commonjs",
+        {
+          "configFile": "./babel.bob.config.js",
+          "esm": true
+        }
+      ],
+      [
+        "module",
+        {
+          "configFile": "./babel.bob.config.js",
+          "esm": true
+        }
+      ],
       [
         "typescript",
         {
-          "project": "tsconfig.json"
+          "project": "tsconfig.build.json"
         }
       ]
-    ]
+    ],
+    "exclude": "**/{__tests__/**,__fixtures__/**,__mocks__/**,test.ts,test.tsx,*.test.ts,*.test.tsx}"
+  },
+  "dependencies": {
+    "hoist-non-react-statics": "^3.3.2",
+    "rxjs": "^7.8.1",
+    "sql-escape-string": "^1.1.0"
+  },
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": {
+        "types": "./lib/typescript/module/src/index.d.ts",
+        "default": "./lib/module/index.js"
+      },
+      "require": {
+        "types": "./lib/typescript/commonjs/src/index.d.ts",
+        "default": "./lib/commonjs/index.js"
+      }
+    },
+    "./*": {
+      "source": "./src/*/index.ts",
+      "import": {
+        "types": "./lib/typescript/module/src/*/index.d.ts",
+        "default": "./lib/module/*/index.js"
+      },
+      "require": {
+        "types": "./lib/typescript/commonjs/src/*/index.d.ts",
+        "default": "./lib/commonjs/*/index.js"
+      }
+    },
+    "./package.json": "./package.json"
   }
 }

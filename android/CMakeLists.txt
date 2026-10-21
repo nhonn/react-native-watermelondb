@@ -11,8 +11,11 @@ add_compile_options(-DRN_SERIALIZABLE_STATE=1)
 # Define C++ library and add all sources
 add_library(${PACKAGE_NAME} SHARED 
 	src/main/cpp/cpp-adapter.cpp
-	../cpp/HybridWatermelondb.cpp
-        
+	../cpp/HybridNativeDatabaseFactory.cpp
+	../cpp/HybridNativeDatabase.cpp
+	../cpp/core/SqliteDb.cpp
+	../cpp/core/DatabaseCore.cpp
+	../cpp/vendor/sqlite3/sqlite3.c
 )
 
 # Add Nitrogen specs :)
@@ -22,6 +25,8 @@ include(${CMAKE_SOURCE_DIR}/../nitrogen/generated/android/Watermelondb+autolinki
 include_directories(
         "src/main/cpp"
         "../cpp"
+        "../cpp/core"
+        "../cpp/vendor/sqlite3"
 )
 
 find_library(LOG_LIB log)

@@ -8,10 +8,13 @@
 #pragma once
 
 // Forward declarations of C++ defined types
-
+// Forward declaration of `HybridDatabasePathsSpec` to properly resolve imports.
+namespace margelo::nitro::watermelondb { class HybridDatabasePathsSpec; }
 
 // Include C++ defined types
-
+#include "HybridDatabasePathsSpec.hpp"
+#include <memory>
+#include <string>
 
 // C++ helpers for Swift
 #include "Watermelondb-Swift-Cxx-Bridge.hpp"
@@ -23,7 +26,8 @@
 #include <NitroModules/DateToChronoDate.hpp>
 
 // Forward declarations of Swift defined types
-
+// Forward declaration of `HybridDatabasePathsSpec_cxx` to properly resolve imports.
+namespace Watermelondb { class HybridDatabasePathsSpec_cxx; }
 
 // Include Swift defined types
 #if __has_include("Watermelondb-Swift.h")

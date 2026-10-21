@@ -13,10 +13,20 @@
     "androidCxxLibName": "Watermelondb"
   },
   "autolinking": {
-    "Watermelondb": {
+    "NativeDatabaseFactory": {
       "all": {
         "language": "c++",
-        "implementationClassName": "HybridWatermelondb"
+        "implementationClassName": "HybridNativeDatabaseFactory"
+      }
+    },
+    "DatabasePaths": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridDatabasePaths"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridDatabasePaths"
       }
     }
   },

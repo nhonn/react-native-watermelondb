@@ -20,7 +20,17 @@ react-native-watermelondb is a react native package built with Nitro
 bun add react-native-watermelondb react-native-nitro-modules
 ```
 
+```ts
+import { Database } from 'react-native-watermelondb'
+import SQLiteAdapter from 'react-native-watermelondb/adapters/sqlite'
+```
+
+LokiJS, Turbo Login, JSI/sync dispatcher modes and Windows are not supported.
+
 ## Credits
+
+Fork of [WatermelonDB](https://github.com/Nozbe/WatermelonDB) (MIT, © Nozbe) at commit `5c463222ecd79928861385bac94b486fcc7623d4`, with the JS ported to TypeScript and the native layer replaced by a Nitro C++ engine (iOS + Android only; all SQLite calls run asynchronously on a per-database native thread).
+
 
 Bootstrapped with [create-nitro-module](https://github.com/patrickkabwe/create-nitro-module).
 
