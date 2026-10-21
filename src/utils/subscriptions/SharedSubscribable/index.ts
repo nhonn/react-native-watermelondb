@@ -17,8 +17,14 @@ export default class SharedSubscribable<T> {
   _didEmit: boolean = false
   _lastValue: T = null as any
 
-  constructor(source: (subscriber: (arg0: T) => void) => Unsubscribe) {
+  _onIdle: (() => void) | undefined
+
+  constructor(
+    source: (subscriber: (arg0: T) => void) => Unsubscribe,
+    onIdle?: () => void
+  ) {
     this._source = source
+    this._onIdle = onIdle
   }
 
   subscribe(subscriber: (arg0: T) => void, debugInfo?: any): Unsubscribe {
@@ -61,6 +67,7 @@ export default class SharedSubscribable<T> {
       this._unsubscribeSource = null
       this._didEmit = false
       if (unsubscribe) unsubscribe()
+      this._onIdle?.()
     }
   }
 }

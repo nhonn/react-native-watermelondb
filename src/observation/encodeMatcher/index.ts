@@ -57,7 +57,7 @@ const encodeWhere: (arg0: Where) => Matcher<Model> = (where) => {
   }
 }
 
-const encodeConditions: (arg0: Array<Where>) => Matcher<Model> = (conditions) =>
+export const encodeConditions: (arg0: Array<Where>) => Matcher<Model> = (conditions) =>
   allPass(conditions.map(encodeWhere))
 
 export default function encodeMatcher<Element extends Model>(

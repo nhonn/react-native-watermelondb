@@ -97,4 +97,67 @@ describe('subscribeToQueryReloading', () => {
     expect(observer).toHaveBeenLastCalledWith([])
     unsubscribe()
   })
+  it('skips reload for irrelevant changes', async () => {
+    const { db, tasks } = mockDatabase()
+    const spy = jest.spyOn(tasks, '_fetchQuery')
+    const [m1, m2, m3] = await db.write(async () => [
+      await createTask(tasks, 'a', true),
+      await createTask(tasks, 'b', true),
+      await createTask(tasks, 'c', false),
+    ])
+    const observer = jest.fn()
+    const unsubscribe = subscribeToQueryReloading(
+      tasks.query(
+        Q.where('is_completed', true),
+        Q.sortBy('name', Q.asc),
+        Q.take(2)
+      ),
+      observer
+    )
+    const waitForNextQuery = () => tasks.database.adapter.getLocal("x")
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(observer).toHaveBeenLastCalledWith([m1, m2])
+
+    await updateTask(m3, (t: any) => {
+      t.name = 'c2'
+    })
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    await db.write(() => createTask(tasks, 'd', false))
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    await updateTask(m3, (t: any) => {
+      t.isCompleted = true
+    })
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(2)
+
+    await updateTask(m1, (t: any) => {
+      t.name = 'a2'
+    })
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(3)
+    unsubscribe()
+  })
+  it('always reloads with skip', async () => {
+    const { db, tasks } = mockDatabase()
+    const spy = jest.spyOn(tasks, '_fetchQuery')
+    const m1 = await db.write(() => createTask(tasks, 'a', false))
+    const unsubscribe = subscribeToQueryReloading(
+      tasks.query(Q.where('is_completed', true), Q.take(1), Q.skip(1)),
+      jest.fn()
+    )
+    const waitForNextQuery = () => tasks.database.adapter.getLocal("x")
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(1)
+    await updateTask(m1, (t: any) => {
+      t.name = 'b'
+    })
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(2)
+    unsubscribe()
+  })
 })

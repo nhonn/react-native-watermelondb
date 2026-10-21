@@ -41,8 +41,8 @@ const mockCollection = Object.freeze({
     get: (table: any) =>
       table === 'projects'
         ? {
-            modelClass: MockProject,
-          }
+          modelClass: MockProject,
+        }
         : undefined,
   },
 })
@@ -493,5 +493,24 @@ describe('Query', () => {
     const query = new Query(mockCollection as any, [Q.where('id', 'abcdef')])
     // @ts-expect-error ported Flow test code is not type-safe here
     expect(query.constructor._wmelonTag).toBe('query')
+  })
+  it('equal queries share one observation', async () => {
+    const { tasks } = mockDatabase()
+    const spy = jest.spyOn(tasks, '_fetchQuery')
+    const make = () =>
+      tasks.query(Q.where('is_completed', true), Q.sortBy('name'))
+    const o1 = jest.fn()
+    const o2 = jest.fn()
+    const u1 = make().experimentalSubscribe(o1)
+    const u2 = make().experimentalSubscribe(o2)
+    await tasks.database.adapter.getLocal("x")
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(o1.mock.calls[0][0]).toBe(o2.mock.calls[0][0])
+    u1()
+    u2()
+    expect(tasks._sharedSubscribables.size).toBe(0)
+    expect(tasks.query(Q.where('position', NaN))._descriptionKey).not.toBe(
+      tasks.query(Q.where('position', null))._descriptionKey
+    )
   })
 })
