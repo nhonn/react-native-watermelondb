@@ -74,7 +74,7 @@ jobs:
           set -o pipefail && xcodebuild             CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++             -derivedDataPath build -UseModernBuildSystem=YES             -workspace WatermelondbExample.xcworkspace             -scheme WatermelondbExample             -sdk iphonesimulator             -configuration Debug             build             CODE_SIGNING_ALLOWED=NO
 
       - name: Run React Native Harness
-        uses: callstackincubator/react-native-harness@v1.2.0
+        uses: callstackincubator/react-native-harness@v1.6.0
         with:
           app: ios/build/Build/Products/Debug-iphonesimulator/WatermelondbExample.app
           runner: ios
