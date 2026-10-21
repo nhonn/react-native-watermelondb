@@ -2,8 +2,10 @@
 
 #include "SqliteDb.hpp"
 #include "SqliteTypes.hpp"
+#include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -50,7 +52,13 @@ private:
   bool _exclusive;
   std::unique_ptr<SqliteDb> _db;
   StatementCache _statements;
-  std::unordered_set<std::string> _cache; // "table$id"
+  // Ids of records the JS side has cached, per table. Transparent hash: lookups by string_view don't allocate.
+  struct IdHash {
+    using is_transparent = void;
+    size_t operator()(std::string_view s) const noexcept { return std::hash<std::string_view>{}(s); }
+  };
+  using IdSet = std::unordered_set<std::string, IdHash, std::equal_to<>>;
+  std::unordered_map<std::string, IdSet> _cache;
 };
 
 } // namespace watermelondb

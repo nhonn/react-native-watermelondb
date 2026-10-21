@@ -13,6 +13,8 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "specs": "nitrogen --logLevel=\"debug\"",
+    "bench:js": "NODE_ENV=production node --expose-gc node_modules/jest/bin/jest.js -c test/bench/jest.config.js --runInBand",
+    "bench:cpp": "mkdir -p .cache && c++ -std=c++20 -O2 -DNDEBUG -Icpp/core -Inode_modules/react-native-nitro-modules/cpp/core -Inode_modules/react-native-nitro-modules/cpp/utils cpp/core/SqliteDb.cpp cpp/core/DatabaseCore.cpp test/cpp/DatabaseCoreBench.cpp -lsqlite3 -o .cache/wmdb-core-bench && ./.cache/wmdb-core-bench",
     "test:cpp": "mkdir -p .cache && c++ -std=c++20 -Wall -Wextra -Icpp/core -Inode_modules/react-native-nitro-modules/cpp/core -Inode_modules/react-native-nitro-modules/cpp/utils cpp/core/SqliteDb.cpp cpp/core/DatabaseCore.cpp test/cpp/DatabaseCoreTest.cpp -lsqlite3 -o .cache/wmdb-core-test && ./.cache/wmdb-core-test",
     "clean": "git clean -dfX",
     "release": "semantic-release",
@@ -56,6 +58,7 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-decorators": "^7",
+    "@nozbe/watermelondb": "0.28.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@types/hoist-non-react-statics": "^3.3.7",

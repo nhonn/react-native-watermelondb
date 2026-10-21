@@ -1,7 +1,7 @@
 #pragma once
 
 #include "StatementCache.hpp"
-#include <sqlite3.h>
+#include "Sqlite3.hpp"
 #include <string>
 
 namespace watermelondb {

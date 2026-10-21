@@ -94,7 +94,10 @@ std::shared_ptr<Promise<double>> HybridNativeDatabase::count(const std::string& 
 std::shared_ptr<Promise<void>> HybridNativeDatabase::batch(
     const std::vector<std::tuple<double, std::optional<std::variant<NullType, std::string>>, std::string,
                                  std::vector<std::vector<std::variant<NullType, bool, std::string, double>>>>>& operations) {
-  return enqueue<void>([=](DatabaseCore& core) { core.batch(operations); });
+  // Nitro passes each argument as a non-const temporary converted from JS (HybridFunction::callMethod),
+  // so moving out of it is safe and skips a deep copy of every row.
+  using Operations = std::remove_cvref_t<decltype(operations)>;
+  return enqueue<void>([operations = std::move(const_cast<Operations&>(operations))](DatabaseCore& core) { core.batch(operations); });
 }
 
 std::shared_ptr<Promise<std::variant<NullType, std::string>>> HybridNativeDatabase::getLocal(const std::string& key) {
@@ -111,6 +114,55 @@ std::shared_ptr<Promise<void>> HybridNativeDatabase::unsafeResetDatabase(const s
 
 std::shared_ptr<Promise<void>> HybridNativeDatabase::unsafeClose() {
   return enqueue<void>([](DatabaseCore& core) { core.close(); });
+}
+
+static const std::string& stringArg(const NativeReadCall& call) {
+  const std::string* value = call.args.empty() ? nullptr : std::get_if<std::string>(&call.args[0]);
+  if (value == nullptr) {
+    throw std::runtime_error("Expected a string as the first argument");
+  }
+  return *value;
+}
+
+static NativeReadResult runRead(DatabaseCore& core, const NativeReadCall& call) {
+  NativeReadResult result;
+  try {
+    switch (call.method) {
+      case NativeReadMethod::FIND:
+        result.find = core.find(call.table, stringArg(call));
+        break;
+      case NativeReadMethod::QUERY:
+        result.records = core.query(call.table, call.sql, call.args);
+        break;
+      case NativeReadMethod::QUERYIDS:
+        result.ids = core.queryIds(call.sql, call.args);
+        break;
+      case NativeReadMethod::UNSAFEQUERYRAW:
+        result.records = core.unsafeQueryRaw(call.sql, call.args);
+        break;
+      case NativeReadMethod::COUNT:
+        result.count = core.count(call.sql, call.args);
+        break;
+      case NativeReadMethod::GETLOCAL:
+        result.local = core.getLocal(stringArg(call));
+        break;
+    }
+  } catch (const std::exception& e) {
+    result.error = e.what();
+  }
+  return result;
+}
+
+std::shared_ptr<Promise<std::vector<NativeReadResult>>> HybridNativeDatabase::readMany(const std::vector<NativeReadCall>& calls) {
+  using Calls = std::remove_cvref_t<decltype(calls)>; // moved for the same reason as in batch()
+  return enqueue<std::vector<NativeReadResult>>([calls = std::move(const_cast<Calls&>(calls))](DatabaseCore& core) {
+    std::vector<NativeReadResult> results;
+    results.reserve(calls.size());
+    for (const auto& call : calls) {
+      results.push_back(runRead(core, call));
+    }
+    return results;
+  });
 }
 
 // Synchronous variants: run on the calling (JS) thread; exceptions propagate to Nitro, which rethrows them in JS.

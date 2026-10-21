@@ -72,6 +72,9 @@ int main() {
   // cache remove
   core.batch({NativeBatchOperation{-1, BatchTable(std::string("tasks")), "delete from tasks where id = ?", {{S("a")}}}});
   assert(std::holds_alternative<margelo::nitro::NullType>(core.find("tasks", "a")));
+  // cache changes apply in operation order: remove, then re-add in the same batch leaves the id cached
+  core.batch({NativeBatchOperation{-1, BatchTable(std::string("tasks")), "delete from tasks where id = ?", {{S("b")}}}, insertOp(1, "b", "B")});
+  assert(std::get<std::string>(core.find("tasks", "b")) == "b");
 
   core.migrate("alter table tasks add column extra;", 1, 2);
   assert(core.getUserVersion() == 2);
@@ -114,7 +117,10 @@ int main() {
     assert(cache.take("select 0") == nullptr);
     sqlite3_stmt* taken = cache.take("select 128");
     assert(taken != nullptr);
-    sqlite3_finalize(taken);
+    assert(cache.take("select 128") == nullptr); // a borrowed statement is never handed out twice
+    cache.put("select 128", taken);
+    assert(cache.take("select 128") == taken);
+    cache.put("select 128", taken);
   }
   sqlite3_close(mem);
 

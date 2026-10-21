@@ -15,6 +15,10 @@
 
 // Forward declaration of `InitializeResult` to properly resolve imports.
 namespace margelo::nitro::watermelondb { struct InitializeResult; }
+// Forward declaration of `NativeReadResult` to properly resolve imports.
+namespace margelo::nitro::watermelondb { struct NativeReadResult; }
+// Forward declaration of `NativeReadCall` to properly resolve imports.
+namespace margelo::nitro::watermelondb { struct NativeReadCall; }
 
 #include "InitializeResult.hpp"
 #include <NitroModules/Promise.hpp>
@@ -26,6 +30,8 @@ namespace margelo::nitro::watermelondb { struct InitializeResult; }
 #include <vector>
 #include <optional>
 #include <tuple>
+#include "NativeReadResult.hpp"
+#include "NativeReadCall.hpp"
 
 namespace margelo::nitro::watermelondb {
 
@@ -71,6 +77,7 @@ namespace margelo::nitro::watermelondb {
       virtual std::shared_ptr<Promise<void>> unsafeExecuteMultiple(const std::string& sql) = 0;
       virtual std::shared_ptr<Promise<void>> unsafeResetDatabase(const std::string& schemaSql, double schemaVersion) = 0;
       virtual std::shared_ptr<Promise<void>> unsafeClose() = 0;
+      virtual std::shared_ptr<Promise<std::vector<NativeReadResult>>> readMany(const std::vector<NativeReadCall>& calls) = 0;
       virtual InitializeResult initializeSync(double expectedVersion) = 0;
       virtual void setUpWithSchemaSync(const std::string& schemaSql, double schemaVersion) = 0;
       virtual void setUpWithMigrationsSync(const std::string& migrationSql, double fromVersion, double toVersion) = 0;

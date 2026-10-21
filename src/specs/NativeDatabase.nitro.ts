@@ -1,6 +1,7 @@
 import type { HybridObject } from 'react-native-nitro-modules'
 import type { InitializeResult } from './InitializeResult'
 import type { NativeBatchOperation } from './NativeBatchOperation'
+import type { NativeReadCall, NativeReadResult } from './NativeReadCall'
 import type {
   CachedRecords,
   FindResult,
@@ -30,8 +31,10 @@ export interface NativeDatabase extends HybridObject<{
   unsafeExecuteMultiple(sql: string): Promise<void>
   unsafeResetDatabase(schemaSql: string, schemaVersion: number): Promise<void>
   unsafeClose(): Promise<void>
+  // Several reads in one queue hop; each call fails independently (result.error).
+  readMany(calls: NativeReadCall[]): Promise<NativeReadResult[]>
 
-  // Synchronous variants (one per async method, except unsafeClose); run on the calling (JS) thread.
+  // Synchronous variants (one per async method, except unsafeClose and readMany); run on the calling (JS) thread.
   initializeSync(expectedVersion: number): InitializeResult
   setUpWithSchemaSync(schemaSql: string, schemaVersion: number): void
   setUpWithMigrationsSync(

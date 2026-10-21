@@ -23,8 +23,8 @@ export type SQLiteAdapterOptions = {
   // Sets exclusive file locking mode in sqlite. Use this ONLY if you need to - e.g. seems to fix
   // mysterious "database is malformed" issues on Android when using Headless JS
   usesExclusiveLocking?: boolean
-  // Run every SQLite call synchronously on the JS thread (no thread hop / Promise per call).
-  // Lower latency for small queries; blocks the JS thread while SQLite works. Default: false.
+  // Run every SQLite call synchronously on the JS thread (no thread hop / Promise per call), like upstream's JSI mode.
+  // Lower latency; blocks the JS thread while SQLite works. Pass false to run calls on a native thread. Default: true.
   synchronous?: boolean
 }
 // This is the internal format of batch operations

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sqlite3.h>
+#include "Sqlite3.hpp"
 #include <list>
 #include <string>
 #include <string_view>
@@ -9,8 +9,9 @@
 
 namespace watermelondb {
 
-// Bounded LRU cache of prepared statements. Owns the cached statements (finalizes on eviction/clear).
-// take() removes the entry, so a borrowed statement can never be evicted while in use; put() returns it.
+// Bounded LRU cache of prepared statements. Owns every statement it was given (finalizes on eviction/clear).
+// take() marks an entry borrowed (never handed out twice, never evicted) without reallocating; put() returns it.
+// clear() finalizes borrowed statements too: call it only while nothing is borrowed.
 class StatementCache final {
 public:
   // Batch uses insert/update/delete per table + find per table; a small bound would thrash apps with many tables.
@@ -23,33 +24,35 @@ public:
 
   sqlite3_stmt* take(const std::string& sql) {
     auto it = _index.find(sql);
-    if (it == _index.end()) {
+    if (it == _index.end() || it->second->borrowed) {
       return nullptr;
     }
-    auto entry = it->second;
-    sqlite3_stmt* stmt = entry->second;
-    _index.erase(it);
-    _entries.erase(entry);
-    return stmt;
+    const auto entry = it->second;
+    entry->borrowed = true;
+    _entries.splice(_entries.begin(), _entries, entry); // LRU touch, no allocation
+    return entry->stmt;
   }
 
   void put(const std::string& sql, sqlite3_stmt* stmt) {
-    if (_index.find(sql) != _index.end()) {
-      sqlite3_finalize(stmt);
+    auto it = _index.find(sql);
+    if (it != _index.end()) {
+      if (it->second->stmt == stmt) {
+        it->second->borrowed = false;
+      } else {
+        sqlite3_finalize(stmt); // prepared while the cached one was borrowed
+      }
       return;
     }
-    if (_entries.size() == kCapacity) {
-      _index.erase(_entries.back().first);
-      sqlite3_finalize(_entries.back().second);
-      _entries.pop_back();
+    if (_entries.size() >= kCapacity) {
+      evictOne();
     }
-    _entries.emplace_front(sql, stmt);
-    _index.emplace(std::string_view(_entries.front().first), _entries.begin());
+    _entries.push_front(Entry{sql, stmt, false});
+    _index.emplace(std::string_view(_entries.front().sql), _entries.begin());
   }
 
   void clear() noexcept {
     for (auto& entry : _entries) {
-      sqlite3_finalize(entry.second);
+      sqlite3_finalize(entry.stmt);
     }
     _index.clear();
     _entries.clear();
@@ -58,7 +61,24 @@ public:
   size_t size() const { return _entries.size(); }
 
 private:
-  using Entries = std::list<std::pair<std::string, sqlite3_stmt*>>;
+  struct Entry {
+    std::string sql;
+    sqlite3_stmt* stmt;
+    bool borrowed;
+  };
+  using Entries = std::list<Entry>;
+
+  void evictOne() {
+    for (auto it = _entries.end(); it != _entries.begin();) {
+      if (!(--it)->borrowed) {
+        _index.erase(it->sql);
+        sqlite3_finalize(it->stmt);
+        _entries.erase(it);
+        return;
+      }
+    }
+  }
+
   Entries _entries; // front = most recent
   std::unordered_map<std::string_view, Entries::iterator> _index; // views point into list-owned strings
 };

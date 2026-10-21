@@ -15,14 +15,16 @@ add_library(${PACKAGE_NAME} SHARED
 	../cpp/HybridNativeDatabase.cpp
 	../cpp/core/SqliteDb.cpp
 	../cpp/core/DatabaseCore.cpp
-	../cpp/vendor/sqlite3/sqlite3.c
+	../cpp/vendor/sqlite3/wmdb_sqlite3.c
 )
 
-# SQLite tuning (see sqlite.org/compile.html#recommended_compile_time_options).
+# SQLite tuning (see sqlite.org/compile.html#recommended_compile_time_options); keep in sync with Watermelondb.podspec.
 # THREADSAFE=2: each connection is used by one thread at a time (guarded by HybridNativeDatabase::_lock); global state stays locked for multiple DBs.
-# Not used: DQS=0 / MAX_EXPR_DEPTH=0 (behavior differs from iOS system SQLite), OMIT_SHARED_CACHE (tests use cache=shared).
-set_source_files_properties(../cpp/vendor/sqlite3/sqlite3.c PROPERTIES
-  COMPILE_DEFINITIONS "SQLITE_THREADSAFE=2;SQLITE_DEFAULT_MEMSTATUS=0;SQLITE_LIKE_DOESNT_MATCH_BLOBS=1;SQLITE_OMIT_DEPRECATED=1;SQLITE_OMIT_PROGRESS_CALLBACK=1;SQLITE_USE_ALLOCA=1;HAVE_FDATASYNC=1"
+# DEFAULT_WAL_SYNCHRONOUS=1: NORMAL in WAL mode, like Apple's system SQLite.
+# Not used: DQS=0 / MAX_EXPR_DEPTH=0 (behavior differs from stock SQLite), OMIT_SHARED_CACHE (tests use cache=shared).
+add_compile_definitions(WMDB_VENDORED_SQLITE) # our sources call the wmdb_-prefixed symbols
+set_source_files_properties(../cpp/vendor/sqlite3/wmdb_sqlite3.c PROPERTIES
+  COMPILE_DEFINITIONS "SQLITE_THREADSAFE=2;SQLITE_DEFAULT_MEMSTATUS=0;SQLITE_DEFAULT_WAL_SYNCHRONOUS=1;SQLITE_LIKE_DOESNT_MATCH_BLOBS=1;SQLITE_OMIT_DEPRECATED=1;SQLITE_OMIT_PROGRESS_CALLBACK=1;SQLITE_USE_ALLOCA=1;HAVE_FDATASYNC=1"
   COMPILE_OPTIONS "-O2;-fvisibility=hidden")
 
 # Add Nitrogen specs :)

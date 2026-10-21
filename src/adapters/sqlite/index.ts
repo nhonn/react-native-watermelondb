@@ -57,7 +57,7 @@ export default class SQLiteAdapter implements DatabaseAdapter {
       migrations,
       migrationEvents,
       usesExclusiveLocking = false,
-      synchronous = false,
+      synchronous = true,
     } = options
     this.schema = schema
     this.migrations = migrations
