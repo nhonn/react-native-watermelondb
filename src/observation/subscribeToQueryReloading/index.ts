@@ -28,18 +28,27 @@ export default function subscribeToQueryReloading<Record extends Model>(
     !description.sql
   let matcher: Matcher<Record> | null | undefined
   let previousIds: Set<RecordId> | null = null
-  let pendingFetches = 0
+  let fetching = false
+  let refetch = false
   let previousRecords: Record[] | null | undefined = null
   let unsubscribed = false
 
   function reloadingObserverFetch(): void {
-    if (shouldEmitStatus) {
-      if (!unsubscribed) subscriber(false as any)
+    if (fetching) {
+      refetch = true // collapse invalidations that arrive mid-fetch into one refetch
+      return
     }
+    fetching = true
+    if (shouldEmitStatus && !unsubscribed) subscriber(false as any)
 
-    pendingFetches += 1
     collection._fetchQuery(query, (result) => {
-      pendingFetches -= 1
+      fetching = false
+      if (refetch && !unsubscribed) {
+        refetch = false
+        reloadingObserverFetch() // this result is stale: don't emit it
+        return
+      }
+      refetch = false
       if (result.error) {
         logError(result.error.toString())
         return
@@ -66,7 +75,7 @@ export default function subscribeToQueryReloading<Record extends Model>(
         if (!canAffectQuery(dependencies, changedTable, change)) return false
         if (
           !canSkipReloads ||
-          pendingFetches > 0 ||
+          fetching ||
           !previousRecords ||
           changedTable !== table
         )

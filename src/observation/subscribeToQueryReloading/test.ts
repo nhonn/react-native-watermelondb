@@ -84,6 +84,52 @@ describe('subscribeToQueryReloading', () => {
     )
     expect(observer).toHaveBeenCalledTimes(4)
   })
+  it('coalesces invalidations while a fetch is in flight', async () => {
+    const { db, tasks, projects } = mockDatabase()
+    const query = tasks.query(
+      Q.where('is_completed', true),
+      Q.on('mock_projects', Q.where('name', 'hello'))
+    )
+    let project: any
+    let m1: any
+    let stale: any
+    await db.write(() => {
+      project = projects.prepareCreateFromDirtyRaw({
+        id: 'MOCK_PROJECT',
+        name: 'hello',
+      })
+      m1 = prepareTask(tasks, 'name1', true)
+      stale = prepareTask(tasks, 'stale', true)
+      return db.batch(project, m1, stale)
+    })
+    const callbacks: any[] = []
+    const spy = jest
+      .spyOn(tasks, '_fetchQuery')
+      .mockImplementation(((_q: any, cb: any) => {
+        callbacks.push(cb)
+      }) as any)
+    const observer = jest.fn()
+    const unsubscribe = subscribeToQueryReloading(query, observer)
+    callbacks[0]({ value: [] })
+    expect(observer).toHaveBeenCalledTimes(1)
+
+    const notify = () =>
+      db._notify([['mock_projects', [{ record: project, type: 'updated' }]]])
+    notify() // starts fetch #2
+    notify() // in flight: collapsed
+    notify()
+    expect(spy).toHaveBeenCalledTimes(2)
+
+    callbacks[1]({ value: [stale] }) // stale result: not emitted, one refetch
+    expect(observer).toHaveBeenCalledTimes(1)
+    expect(spy).toHaveBeenCalledTimes(3)
+
+    callbacks[2]({ value: [m1] })
+    expect(observer).toHaveBeenCalledTimes(2)
+    expect(observer).toHaveBeenLastCalledWith([m1])
+    unsubscribe()
+    spy.mockRestore()
+  })
   it('calls observer even if query is empty (regression test)', async () => {
     const { tasks } = mockDatabase()
     const observer = jest.fn()
