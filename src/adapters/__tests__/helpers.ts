@@ -44,10 +44,6 @@ export class MockTeam extends Model {
     },
   }
 }
-export class MockOrganization extends Model {
-  static table = 'organizations'
-  static associations: any = {}
-}
 export class MockTagAssignment extends Model {
   static table = 'tag_assignments'
   static associations: any = {

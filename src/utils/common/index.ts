@@ -1,8 +1,3 @@
-export {
-  getPreciseTime,
-  devMeasureTime,
-  devMeasureTimeAsync,
-} from './devMeasureTime'
 export { default as randomId } from './randomId'
 export { default as makeDecorator } from './makeDecorator'
 export { default as ensureSync } from './ensureSync'

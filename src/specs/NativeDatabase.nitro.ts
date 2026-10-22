@@ -30,11 +30,10 @@ export interface NativeDatabase extends HybridObject<{
   getLocal(key: string): Promise<LocalValue>
   unsafeExecuteMultiple(sql: string): Promise<void>
   unsafeResetDatabase(schemaSql: string, schemaVersion: number): Promise<void>
-  unsafeClose(): Promise<void>
   // Several reads in one queue hop; each call fails independently (result.error).
   readMany(calls: NativeReadCall[]): Promise<NativeReadResult[]>
 
-  // Synchronous variants (one per async method, except unsafeClose and readMany); run on the calling (JS) thread.
+  // Synchronous variants (one per async method, except readMany); run on the calling (JS) thread.
   initializeSync(expectedVersion: number): InitializeResult
   setUpWithSchemaSync(schemaSql: string, schemaVersion: number): void
   setUpWithMigrationsSync(

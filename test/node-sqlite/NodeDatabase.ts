@@ -216,12 +216,4 @@ export class NodeDatabase {
   unsafeExecuteMultiple(sql: string): void {
     this._open().exec(sql)
   }
-
-  unsafeClose(): void {
-    if (this._db && !sharedMemory.has(this._path)) {
-      this._db.close()
-    }
-    this._db = undefined
-    this._cache.clear()
-  }
 }

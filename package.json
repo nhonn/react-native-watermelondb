@@ -52,11 +52,11 @@
   "workspaces": [
     "example"
   ],
-  "repository": "https://github.com/noahnguyen/react-native-watermelondb.git",
+  "repository": "https://github.com/nhonn/react-native-watermelondb.git",
   "author": "Noah Nguyen",
   "license": "MIT",
   "bugs": "https://github.com/nhonn/react-native-watermelondb/issues",
-  "homepage": "https://github.com/noahnguyen/react-native-watermelondb#readme",
+  "homepage": "https://github.com/nhonn/react-native-watermelondb#readme",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

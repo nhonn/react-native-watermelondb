@@ -1,6 +1,3 @@
-export { default as cacheWhileConnected } from './cacheWhileConnected'
-// export { default as doOnDispose } from './doOnDispose'
-// export { default as doOnSubscribe } from './doOnSubscribe'
 export { default as publishReplayLatestWhileConnected } from './publishReplayLatestWhileConnected'
 export {
   // classes
@@ -10,12 +7,10 @@ export {
   BehaviorSubject, // observables
   of,
   merge,
-  defer, // operators
-  multicast,
+  multicast, // operators
   distinctUntilChanged,
   map,
   switchMap,
-  throttleTime,
   startWith,
   catchError,
 } from './__wmelonRxShim'

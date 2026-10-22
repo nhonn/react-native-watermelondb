@@ -10,7 +10,6 @@ export {
   BehaviorSubject, // observables
   of,
   merge,
-  defer,
 } from 'rxjs'
 export {
   // operators
@@ -18,7 +17,6 @@ export {
   distinctUntilChanged,
   map,
   switchMap,
-  throttleTime,
   startWith,
   catchError,
 } from 'rxjs/operators'

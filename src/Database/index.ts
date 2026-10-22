@@ -21,10 +21,6 @@ type DatabaseProps = {
  adapter: DatabaseAdapter
  modelClasses: Array<Class<Model>>
 }
-let experimentalAllowsFatalError = false
-export function setExperimentalAllowsFatalError(): void {
- experimentalAllowsFatalError = true
-}
 export default class Database {
  /**
   * Database's adapter - the low-level connection with the underlying database (e.g. SQLite)
@@ -37,8 +33,6 @@ export default class Database {
  schema: AppSchema
  collections: CollectionMap
  _workQueue: WorkQueue = new WorkQueue(this)
- // (experimental) if true, Database is in a broken state and should not be used anymore
- _isBroken: boolean = false
  _localStorage!: LocalStorage
 
  constructor(options: DatabaseProps) {
@@ -427,26 +421,5 @@ export default class Database {
    this._workQueue.isWriterRunning,
    `${debugName} can only be called from inside of a Writer. See docs for more details.`
   )
- }
-
- // (experimental) puts Database in a broken state
- // TODO: Not used anywhere yet
- _fatalError(error: Error): void {
-  if (!experimentalAllowsFatalError) {
-   logger.warn(
-    'Database is now broken, but experimentalAllowsFatalError has not been enabled to do anything about it...'
-   )
-   return
-  }
-
-  this._isBroken = true
-  logger.error('Database is broken. App must be reloaded before continuing.')
-
-  // TODO: Passing this to an adapter feels wrong, but it's tricky.
-  // $FlowFixMe
-  const underlying: any = this.adapter.underlyingAdapter
-  if (underlying._fatalError) {
-   underlying._fatalError(error)
-  }
  }
 }

@@ -26,7 +26,6 @@ namespace margelo::nitro::watermelondb {
       prototype.registerHybridMethod("getLocal", &HybridNativeDatabaseSpec::getLocal);
       prototype.registerHybridMethod("unsafeExecuteMultiple", &HybridNativeDatabaseSpec::unsafeExecuteMultiple);
       prototype.registerHybridMethod("unsafeResetDatabase", &HybridNativeDatabaseSpec::unsafeResetDatabase);
-      prototype.registerHybridMethod("unsafeClose", &HybridNativeDatabaseSpec::unsafeClose);
       prototype.registerHybridMethod("readMany", &HybridNativeDatabaseSpec::readMany);
       prototype.registerHybridMethod("initializeSync", &HybridNativeDatabaseSpec::initializeSync);
       prototype.registerHybridMethod("setUpWithSchemaSync", &HybridNativeDatabaseSpec::setUpWithSchemaSync);

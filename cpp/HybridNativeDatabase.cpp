@@ -110,10 +110,6 @@ std::shared_ptr<Promise<void>> HybridNativeDatabase::unsafeResetDatabase(const s
   return enqueue<void>([=](DatabaseCore& core) { core.resetWithSchema(schemaSql, static_cast<int>(schemaVersion)); });
 }
 
-std::shared_ptr<Promise<void>> HybridNativeDatabase::unsafeClose() {
-  return enqueue<void>([](DatabaseCore& core) { core.close(); });
-}
-
 static const std::string& stringArg(const NativeReadCall& call) {
   const std::string* value = call.args.empty() ? nullptr : std::get_if<std::string>(&call.args[0]);
   if (value == nullptr) {
