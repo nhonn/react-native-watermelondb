@@ -359,6 +359,14 @@ LocalValue DatabaseCore::getLocal(const std::string& key) {
   return std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)), static_cast<size_t>(sqlite3_column_bytes(stmt, 0)));
 }
 
+template <typename Set> static void shrinkIfSparse(Set& ids) {
+  if (ids.empty()) {
+    Set().swap(ids);
+  } else if (ids.bucket_count() > 64 && ids.size() * 8 < ids.bucket_count()) {
+    ids.rehash(0);
+  }
+}
+
 void DatabaseCore::batch(const std::vector<NativeBatchOperation>& operations) {
   db();
   struct CacheChange {
@@ -418,13 +426,20 @@ void DatabaseCore::batch(const std::vector<NativeBatchOperation>& operations) {
   // unordered_set never shrinks on erase: give memory back after mass deletes.
   if (removed) {
     for (const auto& change : cacheChanges) {
-      if (change.cached->empty()) {
-        IdSet().swap(*change.cached);
-      } else if (change.cached->bucket_count() > 64 && change.cached->size() * 8 < change.cached->bucket_count()) {
-        change.cached->rehash(0);
-      }
+      shrinkIfSparse(*change.cached);
     }
   }
+}
+
+void DatabaseCore::forget(const std::string& table, const std::vector<std::string>& ids) {
+  auto it = _cache.find(table);
+  if (it == _cache.end()) {
+    return;
+  }
+  for (const auto& id : ids) {
+    it->second.erase(id);
+  }
+  shrinkIfSparse(it->second);
 }
 
 void DatabaseCore::close() {

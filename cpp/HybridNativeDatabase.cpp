@@ -213,6 +213,10 @@ void HybridNativeDatabase::unsafeExecuteMultipleSync(const std::string& sql) {
   runSync([&](DatabaseCore& core) { core.executeMultiple(sql); });
 }
 
+void HybridNativeDatabase::forgetSync(const std::string& table, const std::vector<std::string>& ids) {
+  runSync([&](DatabaseCore& core) { core.forget(table, ids); });
+}
+
 void HybridNativeDatabase::unsafeResetDatabaseSync(const std::string& schemaSql, double schemaVersion) {
   runSync([&](DatabaseCore& core) { core.resetWithSchema(schemaSql, static_cast<int>(schemaVersion)); });
 }

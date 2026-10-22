@@ -88,6 +88,7 @@ namespace margelo::nitro::watermelondb {
       virtual void batchSync(const std::vector<std::tuple<double, std::optional<std::variant<nitro::NullType, std::string>>, std::string, std::vector<std::vector<std::variant<nitro::NullType, bool, std::string, double>>>>>& operations) = 0;
       virtual std::variant<nitro::NullType, std::string> getLocalSync(const std::string& key) = 0;
       virtual void unsafeExecuteMultipleSync(const std::string& sql) = 0;
+      virtual void forgetSync(const std::string& table, const std::vector<std::string>& ids) = 0;
       virtual void unsafeResetDatabaseSync(const std::string& schemaSql, double schemaVersion) = 0;
 
     protected:

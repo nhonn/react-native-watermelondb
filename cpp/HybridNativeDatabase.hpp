@@ -49,6 +49,7 @@ public:
                                    std::vector<std::vector<std::variant<NullType, bool, std::string, double>>>>>& operations) override;
   std::variant<NullType, std::string> getLocalSync(const std::string& key) override;
   void unsafeExecuteMultipleSync(const std::string& sql) override;
+  void forgetSync(const std::string& table, const std::vector<std::string>& ids) override;
   void unsafeResetDatabaseSync(const std::string& schemaSql, double schemaVersion) override;
 
 private:

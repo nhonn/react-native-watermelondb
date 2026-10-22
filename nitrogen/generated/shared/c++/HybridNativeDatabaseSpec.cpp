@@ -39,6 +39,7 @@ namespace margelo::nitro::watermelondb {
       prototype.registerHybridMethod("batchSync", &HybridNativeDatabaseSpec::batchSync);
       prototype.registerHybridMethod("getLocalSync", &HybridNativeDatabaseSpec::getLocalSync);
       prototype.registerHybridMethod("unsafeExecuteMultipleSync", &HybridNativeDatabaseSpec::unsafeExecuteMultipleSync);
+      prototype.registerHybridMethod("forgetSync", &HybridNativeDatabaseSpec::forgetSync);
       prototype.registerHybridMethod("unsafeResetDatabaseSync", &HybridNativeDatabaseSpec::unsafeResetDatabaseSync);
     });
   }

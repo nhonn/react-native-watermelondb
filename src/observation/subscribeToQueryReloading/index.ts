@@ -8,6 +8,7 @@ import type { RecordId } from '../../Model'
 import type { CollectionChangeSet } from '../../Collection'
 import type { TableName } from '../../Schema'
 import { encodeConditions, type Matcher } from '../encodeMatcher'
+import canAffectQuery from '../canAffectQuery'
 // Produces an observable version of a query by re-querying the database
 // when any change occurs in any of the relevant Stores.
 // This is inefficient for simple queries, but necessary for complex queries
@@ -59,24 +60,31 @@ export default function subscribeToQueryReloading<Record extends Model>(
   function isRelevant(
     changes: [TableName<any>, CollectionChangeSet<any>][]
   ): boolean {
-    if (!canSkipReloads || pendingFetches > 0 || !previousRecords) return true
-    if (matcher === undefined) {
-      try {
-        matcher = encodeConditions(description.where) as any
-      } catch {
-        matcher = null
-      }
-    }
-    if (!matcher) return true
-    const ids = (previousIds ??= new Set(previousRecords.map((r) => r.id)))
-    return changes.some(
-      ([changedTable, changeSet]) =>
-        changedTable === table &&
-        changeSet.some(
-          ({ record, type }) =>
-            ids.has(record.id) ||
-            (type !== 'destroyed' && matcher!(record._raw))
+    const dependencies = query._columnDependencies
+    return changes.some(([changedTable, changeSet]) =>
+      changeSet.some((change) => {
+        if (!canAffectQuery(dependencies, changedTable, change)) return false
+        if (
+          !canSkipReloads ||
+          pendingFetches > 0 ||
+          !previousRecords ||
+          changedTable !== table
         )
+          return true
+        if (matcher === undefined) {
+          try {
+            matcher = encodeConditions(description.where) as any
+          } catch {
+            matcher = null
+          }
+        }
+        if (!matcher) return true
+        const ids = (previousIds ??= new Set(previousRecords.map((r) => r.id)))
+        return (
+          ids.has(change.record.id) ||
+          (change.type !== 'destroyed' && matcher(change.record._raw))
+        )
+      })
     )
   }
 

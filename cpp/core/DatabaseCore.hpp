@@ -36,6 +36,8 @@ public:
   LocalValue getLocal(const std::string& key);
   void executeMultiple(const std::string& sql);
   void batch(const std::vector<NativeBatchOperation>& operations);
+  // Drops ids from the "cached in JS" set (their models were garbage-collected)
+  void forget(const std::string& table, const std::vector<std::string>& ids);
   void close();
 
 private:

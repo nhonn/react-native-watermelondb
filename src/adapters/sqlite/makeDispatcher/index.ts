@@ -93,6 +93,14 @@ class SqliteNitroDispatcher implements SqliteDispatcher {
     )
   }
 
+  callSync(name: SqliteDispatcherMethod, args: any[]): any {
+    // method calls (not detached references) keep `this` bound for Nitro
+    return (this._db[`${name}Sync`] as (...a: any[]) => unknown).apply(
+      this._db,
+      args
+    )
+  }
+
   call(
     name: SqliteDispatcherMethod,
     args: any[],
@@ -105,9 +113,7 @@ class SqliteNitroDispatcher implements SqliteDispatcher {
     ) {
       let value: unknown
       try {
-        value = (
-          this._db[`${name}Sync`] as (...a: any[]) => unknown
-        ).apply(this._db, args)
+        value = this.callSync(name, args)
       } catch (error) {
         callback({ error: error as Error })
         return
@@ -131,7 +137,7 @@ class SqliteNitroDispatcher implements SqliteDispatcher {
     args: any[],
     callback: ResultCallback<any>
   ): void {
-    ; (this._db[name] as (...a: any[]) => Promise<unknown>)
+    ; (this._db[name as Exclude<SqliteDispatcherMethod, 'forget'>] as (...a: any[]) => Promise<unknown>)
       .apply(this._db, args)
       .then(
         (value) => {

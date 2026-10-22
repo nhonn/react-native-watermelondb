@@ -50,5 +50,7 @@ export interface NativeDatabase extends HybridObject<{
   batchSync(operations: NativeBatchOperation[]): void
   getLocalSync(key: string): LocalValue
   unsafeExecuteMultipleSync(sql: string): void
+  // sync only: drops ids from the native "cached in JS" set (models were garbage-collected)
+  forgetSync(table: string, ids: string[]): void
   unsafeResetDatabaseSync(schemaSql: string, schemaVersion: number): void
 }

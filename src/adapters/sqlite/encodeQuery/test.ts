@@ -50,31 +50,40 @@ const encoded = (clauses: any, countMode?: any) => {
 
 describe('SQLite encodeQuery', () => {
   it('encodes simple queries', () => {
-    expect(encoded([])).toBe(
-      `select "tasks".* from "tasks" where "tasks"."_status" is not 'deleted'`
-    )
+    expect(encodedWithArgs([])).toEqual([
+      `select "tasks".* from "tasks" where "tasks"."_status" is not ?`,
+      ['deleted'],
+    ])
   })
   it('encodes multiple conditions and value types', () => {
     expect(
-      encoded([
+      encodedWithArgs([
         Q.where('col1', `value "'with'" quotes`),
         Q.where('col2', 2),
         Q.where('col3', true),
         Q.where('col4', false),
         Q.where('col5', null),
       ])
-    ).toBe(
-      `select "tasks".* from "tasks" where "tasks"."col1" is 'value "''with''" quotes'` +
-        ` and "tasks"."col2" is 2` +
-        ` and "tasks"."col3" is 1` +
-        ` and "tasks"."col4" is 0` +
-        ` and "tasks"."col5" is null` +
-        ` and "tasks"."_status" is not 'deleted'`
-    )
+    ).toEqual([
+      `select "tasks".* from "tasks" where "tasks"."col1" is ?` +
+        ` and "tasks"."col2" is ?` +
+        ` and "tasks"."col3" is ?` +
+        ` and "tasks"."col4" is ?` +
+        ` and "tasks"."col5" is ?` +
+        ` and "tasks"."_status" is not ?`,
+      [`value "'with'" quotes`, 2, true, false, null, 'deleted'],
+    ])
+  })
+  it('produces identical SQL for different values', () => {
+    const [sqlA, argsA] = encodedWithArgs([Q.where('project_id', 'a')])
+    const [sqlB, argsB] = encodedWithArgs([Q.where('project_id', 'b')])
+    expect(sqlA).toBe(sqlB)
+    expect(argsA).toEqual(['a', 'deleted'])
+    expect(argsB).toEqual(['b', 'deleted'])
   })
   it('encodes multiple operators', () => {
     expect(
-      encoded([
+      encodedWithArgs([
         Q.where('col1', Q.eq('val1')),
         Q.where('col2', Q.gt(2)),
         Q.where('col3', Q.gte(3)),
@@ -89,43 +98,81 @@ describe('SQLite encodeQuery', () => {
         Q.where('col11', Q.notLike('def%')),
         Q.where('col12', Q.includes('foo')),
       ])
-    ).toBe(
-      `select "tasks".* from "tasks" where "tasks"."col1" is 'val1'` +
-        ` and "tasks"."col2" > 2` +
-        ` and "tasks"."col3" >= 3` +
-        ` and "tasks"."col3_5" > 3.5` +
-        ` and "tasks"."col4" < 4` +
-        ` and "tasks"."col5" <= 5` +
-        ` and "tasks"."col6" is not null` +
-        ` and "tasks"."col7" in (1, 2, 3)` +
-        ` and "tasks"."col8" not in ('"a"', '''b''', 'c')` +
-        ` and "tasks"."col9" between 10 and 11` +
-        ` and "tasks"."col10" like '%abc'` +
-        ` and "tasks"."col11" not like 'def%'` +
-        ` and instr("tasks"."col12", 'foo')` +
-        ` and "tasks"."_status" is not 'deleted'`
+    ).toEqual([
+      `select "tasks".* from "tasks" where "tasks"."col1" is ?` +
+        ` and "tasks"."col2" > ?` +
+        ` and "tasks"."col3" >= ?` +
+        ` and "tasks"."col3_5" > ?` +
+        ` and "tasks"."col4" < ?` +
+        ` and "tasks"."col5" <= ?` +
+        ` and "tasks"."col6" is not ?` +
+        ` and "tasks"."col7" in (?, ?, ?)` +
+        ` and "tasks"."col8" not in (?, ?, ?)` +
+        ` and "tasks"."col9" between ? and ?` +
+        ` and "tasks"."col10" like ?` +
+        ` and "tasks"."col11" not like ?` +
+        ` and instr("tasks"."col12", ?)` +
+        ` and "tasks"."_status" is not ?`,
+      [
+        'val1',
+        2,
+        3,
+        3.5,
+        4,
+        5,
+        null,
+        1,
+        2,
+        3,
+        '"a"',
+        "'b'",
+        'c',
+        10,
+        11,
+        '%abc',
+        'def%',
+        'foo',
+        'deleted',
+      ],
+    ])
+  })
+  it('inlines long oneOf lists', () => {
+    const values = Array.from({ length: 101 }, (_, i) => i)
+    const [sql, args] = encodedWithArgs([
+      Q.where('col1', 'x'),
+      Q.where('col2', Q.oneOf(values)),
+    ])
+    expect(sql).toBe(
+      `select "tasks".* from "tasks" where "tasks"."col1" is ?` +
+        ` and "tasks"."col2" in (${values.join(', ')})` +
+        ` and "tasks"."_status" is not ?`
     )
+    expect(args).toEqual(['x', 'deleted'])
   })
   it('encodes column comparisons', () => {
     expect(
-      encoded([
+      encodedWithArgs([
         Q.where('left1', Q.gte(Q.column('right1'))),
         Q.where('left2', Q.weakGt(Q.column('right2'))), // Q.where('left3', Q.includes(Q.column('right3'))),
       ])
-    ).toBe(
+    ).toEqual([
       `select "tasks".* from "tasks" where "tasks"."left1" >= "tasks"."right1"` +
-        ` and ("tasks"."left2" > "tasks"."right2" or ("tasks"."left2" is not null and "tasks"."right2" is null))` + // ` and instr("tasks"."left3", "tasks"."right3")` +
-        ` and "tasks"."_status" is not 'deleted'`
-    )
+        ` and ("tasks"."left2" > "tasks"."right2" or ("tasks"."left2" is not ? and "tasks"."right2" is ?))` + // ` and instr("tasks"."left3", "tasks"."right3")` +
+        ` and "tasks"."_status" is not ?`,
+      [null, null, 'deleted'],
+    ])
   })
   it(`encodes raw SQL expressions`, () => {
-    expect(encoded([Q.unsafeSqlExpr('tasks.left1 >= projects.right1')])).toBe(
-      `select "tasks".* from "tasks" where tasks.left1 >= projects.right1 and "tasks"."_status" is not 'deleted'`
-    )
+    expect(
+      encodedWithArgs([Q.unsafeSqlExpr('tasks.left1 >= projects.right1')])
+    ).toEqual([
+      `select "tasks".* from "tasks" where tasks.left1 >= projects.right1 and "tasks"."_status" is not ?`,
+      ['deleted'],
+    ])
   })
   it('encodes AND/OR nesting', () => {
     expect(
-      encoded([
+      encodedWithArgs([
         Q.where('col1', 'value'),
         Q.or(
           Q.where('col2', true),
@@ -133,18 +180,20 @@ describe('SQLite encodeQuery', () => {
           Q.and(Q.where('col4', Q.gt(5)), Q.where('col5', Q.notIn([6, 7])))
         ),
       ])
-    ).toBe(
-      `select "tasks".* from "tasks" where "tasks"."col1" is 'value'` +
-        ` and ("tasks"."col2" is 1 or "tasks"."col3" is null` +
-        ` or ("tasks"."col4" > 5` +
-        ` and "tasks"."col5" not in (6, 7)))` +
-        ` and "tasks"."_status" is not 'deleted'`
-    )
+    ).toEqual([
+      `select "tasks".* from "tasks" where "tasks"."col1" is ?` +
+        ` and ("tasks"."col2" is ? or "tasks"."col3" is ?` +
+        ` or ("tasks"."col4" > ?` +
+        ` and "tasks"."col5" not in (?, ?)))` +
+        ` and "tasks"."_status" is not ?`,
+      ['value', true, null, 5, 6, 7, 'deleted'],
+    ])
   })
   it('encodes count queries', () => {
-    expect(encoded([Q.where('col1', 'value')], true)).toBe(
-      `select count(*) as "count" from "tasks" where "tasks"."col1" is 'value' and "tasks"."_status" is not 'deleted'`
-    )
+    expect(encodedWithArgs([Q.where('col1', 'value')], true)).toEqual([
+      `select count(*) as "count" from "tasks" where "tasks"."col1" is ? and "tasks"."_status" is not ?`,
+      ['value', 'deleted'],
+    ])
   })
   it('encodes JOIN queries', () => {
     const query = [
@@ -156,42 +205,57 @@ describe('SQLite encodeQuery', () => {
     const expectedQuery =
       `join "projects" on "projects"."id" = "tasks"."project_id"` +
       ` join "tag_assignments" on "tag_assignments"."task_id" = "tasks"."id"` +
-      ` where ("projects"."team_id" is 'abcdef'` +
-      ` and "projects"."_status" is not 'deleted')` +
-      ` and ("projects"."is_active" is 1` +
-      ` and "projects"."_status" is not 'deleted')` +
-      ` and "tasks"."left_column" is 'right_value'` +
-      ` and ("tag_assignments"."tag_id" in ('a', 'b', 'c')` +
-      ` and "tag_assignments"."_status" is not 'deleted')` +
-      ` and "tasks"."_status" is not 'deleted'`
-    expect(encoded(query)).toBe(
-      `select distinct "tasks".* from "tasks" ${expectedQuery}`
-    )
-    expect(encoded(query, true)).toBe(
-      `select count(distinct "tasks"."id") as "count" from "tasks" ${expectedQuery}`
-    )
+      ` where ("projects"."team_id" is ?` +
+      ` and "projects"."_status" is not ?)` +
+      ` and ("projects"."is_active" is ?` +
+      ` and "projects"."_status" is not ?)` +
+      ` and "tasks"."left_column" is ?` +
+      ` and ("tag_assignments"."tag_id" in (?, ?, ?)` +
+      ` and "tag_assignments"."_status" is not ?)` +
+      ` and "tasks"."_status" is not ?`
+    const args = [
+      'abcdef',
+      'deleted',
+      true,
+      'deleted',
+      'right_value',
+      'a',
+      'b',
+      'c',
+      'deleted',
+      'deleted',
+    ]
+    expect(encodedWithArgs(query)).toEqual([
+      `select distinct "tasks".* from "tasks" ${expectedQuery}`,
+      args,
+    ])
+    expect(encodedWithArgs(query, true)).toEqual([
+      `select count(distinct "tasks"."id") as "count" from "tasks" ${expectedQuery}`,
+      args,
+    ])
   })
   it('encodes column comparisons on JOIN queries', () => {
     expect(
-      encoded([
+      encodedWithArgs([
         Q.on('projects', 'left_column', Q.lte(Q.column('right_column'))),
         Q.on('projects', 'left2', Q.weakGt(Q.column('right2'))),
       ])
-    ).toBe(
+    ).toEqual([
       `select "tasks".* from "tasks"` +
         ` join "projects" on "projects"."id" = "tasks"."project_id"` +
         ` where ("projects"."left_column" <= "projects"."right_column"` +
-        ` and "projects"."_status" is not 'deleted')` +
+        ` and "projects"."_status" is not ?)` +
         ` and (("projects"."left2" > "projects"."right2"` +
-        ` or ("projects"."left2" is not null` +
-        ` and "projects"."right2" is null))` +
-        ` and "projects"."_status" is not 'deleted')` +
-        ` and "tasks"."_status" is not 'deleted'`
-    )
+        ` or ("projects"."left2" is not ?` +
+        ` and "projects"."right2" is ?))` +
+        ` and "projects"."_status" is not ?)` +
+        ` and "tasks"."_status" is not ?`,
+      ['deleted', null, null, 'deleted', 'deleted'],
+    ])
   })
   it(`encodes on nested in and/or`, () => {
     expect(
-      encoded([
+      encodedWithArgs([
         Q.experimentalJoinTables(['projects', 'tag_assignments']),
         Q.or(
           Q.where('is_followed', true),
@@ -199,49 +263,52 @@ describe('SQLite encodeQuery', () => {
           Q.and(Q.on('tag_assignments', 'foo', 'bar'))
         ),
       ])
-    ).toBe(
+    ).toEqual([
       `select distinct "tasks".* from "tasks"` +
         ` left join "projects" on "projects"."id" = "tasks"."project_id"` +
         ` left join "tag_assignments" on "tag_assignments"."task_id" = "tasks"."id"` +
-        ` where ("tasks"."is_followed" is 1` +
-        ` or ("projects"."is_followed" is 1 and "projects"."_status" is not 'deleted')` +
-        ` or (("tag_assignments"."foo" is 'bar' and "tag_assignments"."_status" is not 'deleted')))` +
-        ` and "tasks"."_status" is not 'deleted'`
-    )
+        ` where ("tasks"."is_followed" is ?` +
+        ` or ("projects"."is_followed" is ? and "projects"."_status" is not ?)` +
+        ` or (("tag_assignments"."foo" is ? and "tag_assignments"."_status" is not ?)))` +
+        ` and "tasks"."_status" is not ?`,
+      [true, true, 'deleted', 'bar', 'deleted', 'deleted'],
+    ])
   })
   it(`encodes Q.on nested inside Q.on`, () => {
     expect(
-      encoded([
+      encodedWithArgs([
         Q.experimentalNestedJoin('projects', 'teams'),
         Q.on('projects', Q.on('teams', 'foo', 'bar')),
       ])
-    ).toBe(
+    ).toEqual([
       `select "tasks".* from "tasks"` +
         ` join "projects" on "projects"."id" = "tasks"."project_id"` +
         ` left join "teams" on "teams"."id" = "projects"."team_id"` +
-        ` where (("teams"."foo" is 'bar'` +
-        ` and "teams"."_status" is not 'deleted')` +
-        ` and "projects"."_status" is not 'deleted')` +
-        ` and "tasks"."_status" is not 'deleted'`
-    )
+        ` where (("teams"."foo" is ?` +
+        ` and "teams"."_status" is not ?)` +
+        ` and "projects"."_status" is not ?)` +
+        ` and "tasks"."_status" is not ?`,
+      ['bar', 'deleted', 'deleted', 'deleted'],
+    ])
   })
   it(`encodes multiple conditions on Q.on`, () => {
     expect(
-      encoded([
+      encodedWithArgs([
         Q.on('projects', [
           Q.where('foo', 'bar'),
           Q.or(Q.where('bar', 'baz'), Q.where('bla', 'boop')),
         ]),
       ])
-    ).toBe(
+    ).toEqual([
       `select "tasks".* from "tasks"` +
         ` join "projects" on "projects"."id" = "tasks"."project_id"` +
-        ` where ("projects"."foo" is 'bar'` +
-        ` and ("projects"."bar" is 'baz'` +
-        ` or "projects"."bla" is 'boop')` +
-        ` and "projects"."_status" is not 'deleted')` +
-        ` and "tasks"."_status" is not 'deleted'`
-    )
+        ` where ("projects"."foo" is ?` +
+        ` and ("projects"."bar" is ?` +
+        ` or "projects"."bla" is ?)` +
+        ` and "projects"."_status" is not ?)` +
+        ` and "tasks"."_status" is not ?`,
+      ['bar', 'baz', 'boop', 'deleted', 'deleted'],
+    ])
   })
   it('fails to encode bad oneOf/notIn values', () => {
     // @ts-expect-error ported Flow test code is not type-safe here
@@ -259,36 +326,45 @@ describe('SQLite encodeQuery', () => {
     ).toThrow('explicitly declare Q.experimentalJoinTables')
   })
   it('encodes order by clause', () => {
-    expect(encoded([Q.sortBy('sortable_column', Q.desc)])).toBe(
-      `select "tasks".* from "tasks" where "tasks"."_status" is not 'deleted' order by "tasks"."sortable_column" desc`
-    )
+    expect(encodedWithArgs([Q.sortBy('sortable_column', Q.desc)])).toEqual([
+      `select "tasks".* from "tasks" where "tasks"."_status" is not ? order by "tasks"."sortable_column" desc`,
+      ['deleted'],
+    ])
   })
   it('encodes multiple order by clauses', () => {
     expect(
-      encoded([
+      encodedWithArgs([
         Q.sortBy('sortable_column', Q.desc),
         Q.sortBy('sortable_column2', Q.asc),
       ])
-    ).toBe(
-      `select "tasks".* from "tasks" where "tasks"."_status" is not 'deleted' order by "tasks"."sortable_column" desc, "tasks"."sortable_column2" asc`
-    )
+    ).toEqual([
+      `select "tasks".* from "tasks" where "tasks"."_status" is not ? order by "tasks"."sortable_column" desc, "tasks"."sortable_column2" asc`,
+      ['deleted'],
+    ])
   })
   it('encodes limit clause', () => {
-    expect(encoded([Q.take(100)])).toBe(
-      `select "tasks".* from "tasks" where "tasks"."_status" is not 'deleted' limit 100`
-    )
+    expect(encodedWithArgs([Q.take(100)])).toEqual([
+      `select "tasks".* from "tasks" where "tasks"."_status" is not ? limit ?`,
+      ['deleted', 100],
+    ])
   })
   it('encodes limit with offset clause', () => {
-    expect(encoded([Q.take(100), Q.skip(200)])).toBe(
-      `select "tasks".* from "tasks" where "tasks"."_status" is not 'deleted' limit 100 offset 200`
-    )
+    expect(encodedWithArgs([Q.take(100), Q.skip(200)])).toEqual([
+      `select "tasks".* from "tasks" where "tasks"."_status" is not ? limit ? offset ?`,
+      ['deleted', 100, 200],
+    ])
   })
   it('encodes order by together with limit and offset clause', () => {
     expect(
-      encoded([Q.sortBy('sortable_column', 'desc'), Q.take(100), Q.skip(200)])
-    ).toBe(
-      `select "tasks".* from "tasks" where "tasks"."_status" is not 'deleted' order by "tasks"."sortable_column" desc limit 100 offset 200`
-    )
+      encodedWithArgs([
+        Q.sortBy('sortable_column', 'desc'),
+        Q.take(100),
+        Q.skip(200),
+      ])
+    ).toEqual([
+      `select "tasks".* from "tasks" where "tasks"."_status" is not ? order by "tasks"."sortable_column" desc limit ? offset ?`,
+      ['deleted', 100, 200],
+    ])
   })
   it(`encodes unsafe SQL queries`, () => {
     expect(

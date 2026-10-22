@@ -3,6 +3,7 @@ import { mockDatabase } from '../__tests__/testModels'
 import { noop } from '../utils/fp'
 import { logger } from '../utils/common'
 import * as Q from '../QueryDescription'
+import { prepareMarkAsSynced } from '../sync/impl/helpers'
 describe('Database', () => {
   it(`implements get()`, () => {
     const { database } = mockDatabase()
@@ -109,15 +110,15 @@ describe('Database', () => {
       await database.write(() => tasks.create())
       expect(subscriber2).toHaveBeenCalledTimes(0)
     })
-    it.skip('Cancels withChangesForTables observation during reset', async () => { })
-    it.skip('Cancels Collection change observation during reset', async () => { })
-    it.skip('Cancels Collection experimental subscribers during reset', async () => { })
-    it.skip('Cancels Model change observation during reset', async () => { })
-    it.skip('Cancels Model experimental subscribers during reset', async () => { })
-    it.skip('Cancels Query observation during reset', async () => { })
-    it.skip('Cancels Query experimental subscribers during reset', async () => { })
-    it.skip('Cancels Relation observation during reset', async () => { })
-    it.skip('Cancels Relation experimental subscribers during reset', async () => { })
+    it.skip('Cancels withChangesForTables observation during reset', async () => {})
+    it.skip('Cancels Collection change observation during reset', async () => {})
+    it.skip('Cancels Collection experimental subscribers during reset', async () => {})
+    it.skip('Cancels Model change observation during reset', async () => {})
+    it.skip('Cancels Model experimental subscribers during reset', async () => {})
+    it.skip('Cancels Query observation during reset', async () => {})
+    it.skip('Cancels Query experimental subscribers during reset', async () => {})
+    it.skip('Cancels Relation observation during reset', async () => {})
+    it.skip('Cancels Relation experimental subscribers during reset', async () => {})
     it('Signals internally when database is being reset', async () => {
       const { database } = mockDatabase()
       expect(database._isBeingReset).toBe(false)
@@ -136,10 +137,10 @@ describe('Database', () => {
       await expectToRejectWithMessage(promise2, 'forced')
       expect(database._isBeingReset).toBe(false)
     })
-    it.skip('Disallows <many methods> calls during reset', async () => { })
-    it.skip('Makes old Model objects unsable after reset', async () => { })
-    it.skip('Makes old Query objects unsable after reset', async () => { })
-    it.skip('Makes old Relation objects unsable after reset', async () => { }) // TODO: Write a regression test for https://github.com/Nozbe/WatermelonDB/commit/237e041d0d8aa4b3529fbf522f8d29c776fd4c0e
+    it.skip('Disallows <many methods> calls during reset', async () => {})
+    it.skip('Makes old Model objects unsable after reset', async () => {})
+    it.skip('Makes old Query objects unsable after reset', async () => {})
+    it.skip('Makes old Relation objects unsable after reset', async () => {}) // TODO: Write a regression test for https://github.com/Nozbe/WatermelonDB/commit/237e041d0d8aa4b3529fbf522f8d29c776fd4c0e
   })
   describe('Database.batch()', () => {
     it('can batch records', async () => {
@@ -198,6 +199,7 @@ describe('Database', () => {
         {
           record: m1,
           type: 'updated',
+          changedColumns: expect.any(Set),
         },
         {
           record: m5,
@@ -216,6 +218,7 @@ describe('Database', () => {
         {
           record: m2,
           type: 'updated',
+          changedColumns: expect.any(Set),
         },
         {
           record: m4,
@@ -242,6 +245,25 @@ describe('Database', () => {
         .fetch()
       expect(fetchedM3._raw._status).toBe('deleted')
       expect(fetchedM4.length).toBe(0)
+    })
+    it('batch reports changed columns for updates', async () => {
+      const { database, tasks } = mockDatabase()
+      const t = await database.write(() => tasks.create())
+      const subscriber = jest.fn()
+      tasks.experimentalSubscribe(subscriber)
+      await database.write(() =>
+        t.update(() => {
+          t.name = 'x'
+        })
+      )
+      const first = subscriber.mock.calls[0][0][0].changedColumns
+      expect(first.has('name')).toBe(true)
+      expect(first.has('is_completed')).toBe(false)
+      expect(first.has('position')).toBe(false)
+      await database.write(() => database.batch(prepareMarkAsSynced(t)))
+      const second = subscriber.mock.calls[1][0][0].changedColumns
+      expect(second.has('_status')).toBe(true)
+      expect(second.has('name')).toBe(false)
     })
     it('ignores falsy values passed', async () => {
       const { database, tasks: tasksCollection } = mockDatabase()
@@ -380,6 +402,7 @@ describe('Database', () => {
         {
           record: m2,
           type: 'updated',
+          changedColumns: expect.any(Set),
         },
       ])
       await database.write(async () => {
@@ -454,7 +477,7 @@ describe('Database', () => {
       expect(subscriber1).toHaveBeenCalledTimes(0)
       const unsubscribe2 = database.experimentalSubscribe(
         ['mock_tasks'],
-        () => { }
+        () => {}
       )
       unsubscribe2()
       unsubscribe2()
@@ -721,13 +744,13 @@ describe('Database', () => {
       const action = () => db.write(async () => 42)
 
       await expectError(
-        db.write(async (writer) => writer.callWriter((() => { }) as any))
+        db.write(async (writer) => writer.callWriter((() => {}) as any))
       )
       await expectError(
-        db.write(async (writer) => writer.callReader((() => { }) as any))
+        db.write(async (writer) => writer.callReader((() => {}) as any))
       )
       await expectError(
-        db.read(async (reader) => reader.callReader((() => { }) as any))
+        db.read(async (reader) => reader.callReader((() => {}) as any))
       )
       await expectError(
         db.write(async (writer) =>
@@ -747,7 +770,7 @@ describe('Database', () => {
         t2 = tasks.prepareCreate()
         await writer.batch(
           t2,
-          t1.prepareUpdate(() => { }),
+          t1.prepareUpdate(() => {}),
           null,
           false,
           undefined
@@ -787,7 +810,7 @@ describe('Database', () => {
       expectError(() => saved.callReader(() => sth()))
       expectError(() => saved.callWriter(() => sth()))
       expectError(() => saved.batch())
-      db.write(async () => { })
+      db.write(async () => {})
       expectError(() => saved.callReader(() => sth()))
     })
     it('aborts all pending actions if database is reset', async () => {

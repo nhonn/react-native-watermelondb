@@ -2,6 +2,7 @@
 import { invariant } from '../../../utils/common'
 import type { SerializedQuery, QueryAssociation } from '../../../Query'
 import type {
+  Value,
   NonNullValues,
   Operator,
   Where,
@@ -29,18 +30,37 @@ function mapJoin<T>(
 const encodeValues: (arg0: NonNullValues) => string = (values) =>
   `(${mapJoin(values as any[], encodeValue, ', ')})`
 
+// encodeValue logs + maps NaN/undefined to null and throws on non-values: reuse it for validation
+const bind = (args: SQLiteArg[], value: Value): string => {
+  args.push(
+    typeof value === 'string' ||
+      typeof value === 'boolean' ||
+      (typeof value === 'number' && !Number.isNaN(value))
+      ? value
+      : (encodeValue(value), null)
+  )
+  return '?'
+}
+
+// Longer lists stay inlined: they rarely repeat (no statement reuse) and stay far below SQLITE_MAX_VARIABLE_NUMBER (32766)
+const MAX_BOUND_LIST = 100
+
 const getComparisonRight = (
   table: TableName<any>,
-  comparisonRight: ComparisonRight
+  comparisonRight: ComparisonRight,
+  args: SQLiteArg[]
 ): string => {
   if (comparisonRight.values) {
-    return encodeValues(comparisonRight.values)
+    const { values } = comparisonRight
+    return values.length <= MAX_BOUND_LIST
+      ? `(${mapJoin(values as Value[], (v) => bind(args, v), ', ')})`
+      : encodeValues(values)
   } else if (comparisonRight.column) {
     return `"${table}"."${comparisonRight.column}"`
   }
 
   return typeof comparisonRight.value !== 'undefined'
-    ? encodeValue(comparisonRight.value)
+    ? bind(args, comparisonRight.value)
     : 'null'
 }
 
@@ -62,67 +82,76 @@ const operators: Record<Exclude<Operator, 'includes'>, string> = {
   notLike: 'not like',
 }
 
-const encodeComparison = (table: TableName<any>, comparison: Comparison) => {
+const encodeComparison = (
+  table: TableName<any>,
+  comparison: Comparison,
+  args: SQLiteArg[]
+) => {
   const { operator } = comparison
 
   if (operator === 'between') {
     const { right } = comparison
     return right.values
-      ? `between ${encodeValue(right.values[0])} and ${encodeValue(
-        right.values[1]
-      )}`
+      ? `between ${bind(args, right.values[0])} and ${bind(args, right.values[1])}`
       : ''
   }
 
-  return `${operators[operator as keyof typeof operators]} ${getComparisonRight(table, comparison.right)}`
+  return `${operators[operator as keyof typeof operators]} ${getComparisonRight(table, comparison.right, args)}`
 }
 
 const encodeWhere =
-  (table: TableName<any>, associations: QueryAssociation[]) =>
-    (where: Where): string => {
-      switch (where.type) {
-        case 'and':
-          return `(${encodeAndOr(associations, 'and', table, where.conditions)})`
+  (
+    table: TableName<any>,
+    associations: QueryAssociation[],
+    args: SQLiteArg[]
+  ) =>
+  (where: Where): string => {
+    switch (where.type) {
+      case 'and':
+        return `(${encodeAndOr(associations, 'and', table, where.conditions, args)})`
 
-        case 'or':
-          return `(${encodeAndOr(associations, 'or', table, where.conditions)})`
+      case 'or':
+        return `(${encodeAndOr(associations, 'or', table, where.conditions, args)})`
 
-        case 'where':
-          return encodeWhereCondition(
-            associations,
-            table,
-            where.left,
-            where.comparison
+      case 'where':
+        return encodeWhereCondition(
+          associations,
+          table,
+          where.left,
+          where.comparison,
+          args
+        )
+
+      case 'on':
+        if (process.env.NODE_ENV !== 'production') {
+          invariant(
+            associations.some(({ to }) => to === where.table),
+            'To nest Q.on inside Q.and/Q.or you must explicitly declare Q.experimentalJoinTables at the beginning of the query'
           )
+        }
 
-        case 'on':
-          if (process.env.NODE_ENV !== 'production') {
-            invariant(
-              associations.some(({ to }) => to === where.table),
-              'To nest Q.on inside Q.and/Q.or you must explicitly declare Q.experimentalJoinTables at the beginning of the query'
-            )
-          }
+        return `(${encodeAndOr(
+          associations,
+          'and',
+          where.table,
+          where.conditions,
+          args
+        )})`
 
-          return `(${encodeAndOr(
-            associations,
-            'and',
-            where.table,
-            where.conditions
-          )})`
+      case 'sql':
+        return where.expr
 
-        case 'sql':
-          return where.expr
-
-        default:
-          throw new Error(`Unknown clause ${(where as any).type}`)
-      }
+      default:
+        throw new Error(`Unknown clause ${(where as any).type}`)
     }
+  }
 
 const encodeWhereCondition = (
   associations: QueryAssociation[],
   table: TableName<any>,
   left: ColumnName,
-  comparison: Comparison
+  comparison: Comparison,
+  args: SQLiteArg[]
 ): string => {
   const { operator } = comparison
 
@@ -131,7 +160,8 @@ const encodeWhereCondition = (
   if (operator === 'weakGt' && comparison.right.column) {
     return encodeWhere(
       table,
-      associations
+      associations,
+      args
     )(
       Q.or(
         // $FlowFixMe
@@ -145,21 +175,27 @@ const encodeWhereCondition = (
   } else if (operator === 'includes') {
     return `instr("${table}"."${left}", ${getComparisonRight(
       table,
-      comparison.right
+      comparison.right,
+      args
     )})`
   }
 
-  return `"${table}"."${left}" ${encodeComparison(table, comparison)}`
+  return `"${table}"."${left}" ${encodeComparison(table, comparison, args)}`
 }
 
 const encodeAndOr = (
   associations: QueryAssociation[],
   op: string,
   table: TableName<any>,
-  conditions: Where[]
+  conditions: Where[],
+  args: SQLiteArg[]
 ) => {
   if (conditions.length) {
-    return mapJoin(conditions, encodeWhere(table, associations), ` ${op} `)
+    return mapJoin(
+      conditions,
+      encodeWhere(table, associations, args),
+      ` ${op} `
+    )
   }
 
   return ''
@@ -170,11 +206,12 @@ const andJoiner = ' and '
 const encodeConditions = (
   table: TableName<any>,
   description: QueryDescription,
-  associations: QueryAssociation[]
+  associations: QueryAssociation[],
+  args: SQLiteArg[]
 ): string => {
   const clauses = mapJoin(
     description.where,
-    encodeWhere(table, associations),
+    encodeWhere(table, associations, args),
     andJoiner
   )
   return clauses.length ? ` where ${clauses}` : ''
@@ -200,32 +237,32 @@ const encodeMethod = (
 
 const encodeAssociation =
   (description: QueryDescription) =>
-    ({
-      from: mainTable,
-      to: joinedTable,
-      info: association,
-    }: QueryAssociation): string => {
-      // TODO: We have a problem here. For all of eternity, WatermelonDB Q.ons were encoded using JOIN
-      // However, this precludes many legitimate use cases for Q.ons once you start nesting them
-      // (e.g. get tasks where X or has a tag assignment that Y -- if there is no tag assignment, this will
-      // fail to join)
-      // LEFT JOIN needs to be used to address this… BUT technically that's a breaking change. I never
-      // considered a possiblity of making a query like `Q.on(relation_id, x != 'bla')`. Before this would
-      // only match if there IS a relation, but with LEFT JOIN it would also match if record does not have
-      // this relation. I don't know if there are legitimate use cases where this would change anything
-      // so I need more time to think about whether this breaking change is OK to make or if we need to
-      // do something more clever/add option/whatever.
-      // so for now, i'm making an extreeeeemelyyyy bad hack to make sure that there's no breaking change
-      // for existing code and code with nested Q.ons probably works (with caveats)
-      const usesOldJoinStyle = description.where.some(
-        (clause) => clause.type === 'on' && clause.table === joinedTable
-      )
-      const joinKeyword = usesOldJoinStyle ? ' join ' : ' left join '
-      const joinBeginning = `${joinKeyword}"${joinedTable}" on "${joinedTable}".`
-      return association.type === 'belongs_to'
-        ? `${joinBeginning}"id" = "${mainTable}"."${association.key}"`
-        : `${joinBeginning}"${association.foreignKey}" = "${mainTable}"."id"`
-    }
+  ({
+    from: mainTable,
+    to: joinedTable,
+    info: association,
+  }: QueryAssociation): string => {
+    // TODO: We have a problem here. For all of eternity, WatermelonDB Q.ons were encoded using JOIN
+    // However, this precludes many legitimate use cases for Q.ons once you start nesting them
+    // (e.g. get tasks where X or has a tag assignment that Y -- if there is no tag assignment, this will
+    // fail to join)
+    // LEFT JOIN needs to be used to address this… BUT technically that's a breaking change. I never
+    // considered a possiblity of making a query like `Q.on(relation_id, x != 'bla')`. Before this would
+    // only match if there IS a relation, but with LEFT JOIN it would also match if record does not have
+    // this relation. I don't know if there are legitimate use cases where this would change anything
+    // so I need more time to think about whether this breaking change is OK to make or if we need to
+    // do something more clever/add option/whatever.
+    // so for now, i'm making an extreeeeemelyyyy bad hack to make sure that there's no breaking change
+    // for existing code and code with nested Q.ons probably works (with caveats)
+    const usesOldJoinStyle = description.where.some(
+      (clause) => clause.type === 'on' && clause.table === joinedTable
+    )
+    const joinKeyword = usesOldJoinStyle ? ' join ' : ' left join '
+    const joinBeginning = `${joinKeyword}"${joinedTable}" on "${joinedTable}".`
+    return association.type === 'belongs_to'
+      ? `${joinBeginning}"id" = "${mainTable}"."${association.key}"`
+      : `${joinBeginning}"${association.foreignKey}" = "${mainTable}"."id"`
+  }
 
 const encodeJoin = (
   description: QueryDescription,
@@ -250,14 +287,17 @@ const encodeOrderBy = (table: TableName<any>, sortBys: SortBy[]) => {
 
 const encodeLimitOffset = (
   limit: number | null | undefined,
-  offset: number | null | undefined
+  offset: number | null | undefined,
+  args: SQLiteArg[]
 ) => {
   if (!limit) {
     return ''
   }
 
-  const optionalOffsetStmt = offset ? ` offset ${offset}` : ''
-  return ` limit ${limit}${optionalOffsetStmt}`
+  args.push(limit)
+  if (!offset) return ' limit ?'
+  args.push(offset)
+  return ' limit ? offset ?'
 }
 
 const encodeQueryUncached = (
@@ -285,13 +325,15 @@ const encodeQueryUncached = (
     }
   }
 
+  // Order matters: args are pushed in the order their placeholders appear in the SQL text
+  const args: SQLiteArg[] = []
   const sql =
     encodeMethod(table, countMode, hasToManyJoins) +
     encodeJoin(description, associations) +
-    encodeConditions(table, description, associations) +
+    encodeConditions(table, description, associations, args) +
     encodeOrderBy(table, description.sortBy) +
-    encodeLimitOffset(description.take, description.skip)
-  return [sql, []]
+    encodeLimitOffset(description.take, description.skip, args)
+  return [sql, args]
 }
 
 // Keyed by SerializedQuery identity (Query.serialize() returns one object per Query)

@@ -74,6 +74,11 @@ int main() {
   assert(idRow(*records.data, 1) == "b");
   assert(idRow(*records.data, 2) == "c"); // cached by the find above
 
+  // forget: id leaves the cached set, so the next find sends the full row again
+  core.forget("tasks", {"a"});
+  assert(std::holds_alternative<FoundRecord>(core.find("tasks", "a")));
+  core.forget("nope", {"x"}); // unknown table: no-op
+
   assert(core.queryIds("select id from tasks where name = ?", {S("B")}) == std::vector<std::string>{"b"});
   assert(core.count("select count(*) as count from tasks", {}) == 3);
 

@@ -68,10 +68,13 @@ export type SqliteDispatcherMethod =
   | 'unsafeResetDatabase'
   | 'getLocal'
   | 'unsafeExecuteMultiple'
+  | 'forget'
 export interface SqliteDispatcher {
   call(
     methodName: SqliteDispatcherMethod,
     args: any[],
     callback: ResultCallback<any>
   ): void
+  // Throws on error; runs synchronously even when the dispatcher is async
+  callSync(methodName: SqliteDispatcherMethod, args: any[]): any
 }

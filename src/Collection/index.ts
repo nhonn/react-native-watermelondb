@@ -22,6 +22,8 @@ type CollectionChangeType = 'created' | 'updated' | 'destroyed'
 export type CollectionChange<Record extends Model> = {
  record: Record
  type: CollectionChangeType
+ // 'updated' only: raw columns whose value changed. Absent = unknown (treat as "anything changed")
+ changedColumns?: ReadonlySet<string>
 }
 export type CollectionChangeSet<T extends Model> = CollectionChange<T>[]
 export default class Collection<Record extends Model> {

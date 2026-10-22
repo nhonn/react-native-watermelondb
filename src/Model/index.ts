@@ -75,6 +75,8 @@ export default class Model {
     | 'markAsDeleted'
     | 'destroyPermanently' = null
   __changes: BehaviorSubject<any> | null | undefined = null
+  // set by prepareUpdate, consumed by Database.batch
+  _changedColumns: Set<string> | null = null
 
   _getChanges(): BehaviorSubject<any> {
     if (!this.__changes) {
@@ -140,6 +142,7 @@ export default class Model {
     this.__ensureNotDisposable(`Model.prepareUpdate()`)
 
     this._isEditing = true
+    const rawBefore: Record<string, unknown> = Object.assign({}, this._raw)
 
     // Touch updatedAt (if available)
     if ('updatedAt' in this) {
@@ -148,6 +151,12 @@ export default class Model {
 
     // Perform updates
     ensureSync(recordUpdater(this))
+    // Diff instead of hooking setters: covers _setRaw, setRawColumnChange and sync's whole-raw replacement
+    const changedColumns = new Set<string>()
+    const raw = this._raw as Record<string, any>
+    for (const key in raw)
+      if (raw[key] !== rawBefore[key]) changedColumns.add(key)
+    this._changedColumns = changedColumns
     this._isEditing = false
     this._preparedState = 'update'
 
@@ -457,7 +466,7 @@ export default class Model {
   }
 
   _notifyChanged(): void {
-    this._getChanges().next(this)
+    this.__changes?.next(this)
 
     this._subscribers.forEach(([subscriber]) => {
       subscriber(false)
@@ -526,7 +535,7 @@ export default class Model {
       `Not allowed to change record ${this.__debugName} outside of create/update()`
     )
     invariant(
-      !(this._getChanges() as any).isStopped && this._raw._status !== 'deleted',
+      !(this.__changes as any)?.isStopped && this._raw._status !== 'deleted',
       `Not allowed to change deleted record ${this.__debugName}`
     )
   }

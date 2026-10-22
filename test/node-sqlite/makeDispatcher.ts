@@ -19,6 +19,10 @@ class NodeDispatcher implements SqliteDispatcher {
     this._synchronous = synchronous
   }
 
+  callSync(name: SqliteDispatcherMethod, args: any[]): any {
+    return (this._db[name] as (...a: any[]) => unknown)(...args)
+  }
+
   call(
     name: SqliteDispatcherMethod,
     args: any[],

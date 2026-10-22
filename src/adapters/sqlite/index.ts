@@ -4,6 +4,7 @@ import { connectionTag, logger, invariant } from '../../utils/common'
 import type { ResultCallback } from '../../utils/fp/Result'
 import { mapValue, toPromise } from '../../utils/fp/Result'
 import type { RecordId } from '../../Model'
+import type { RawRecord } from '../../RawRecord'
 import type { SerializedQuery } from '../../Query'
 import type { TableName, AppSchema, SchemaVersion } from '../../Schema'
 import type { SchemaMigrations, MigrationStep } from '../../Schema/migrations'
@@ -244,6 +245,20 @@ export default class SQLiteAdapter implements DatabaseAdapter {
         )
       )
     )
+  }
+
+  forgetCachedRecords(table: TableName<any>, ids: RecordId[]): void {
+    this._dispatcher.callSync('forget', [table, ids])
+  }
+
+  // Sync even with `synchronous: false`, because RecordCache needs the row inside a query callback;
+  // the native mutex serializes it with queued work.
+  refetchForgottenRecord(table: TableName<any>, id: RecordId): RawRecord | null {
+    this.forgetCachedRecords(table, [id])
+    return sanitizeFindResult(
+      this._dispatcher.callSync('find', [table, id]),
+      this.schema.tables[table]
+    ) as RawRecord | null
   }
 
   query(

@@ -5,8 +5,10 @@ import type { CachedQueryResult } from '../adapters/type'
 import type { TableName } from '../Schema'
 import type { RawRecord } from '../RawRecord'
 type Instantiator<T> = (arg0: RawRecord) => T
+const SWEEP_EVERY_ADDS = 500
 export default class RecordCache<Record extends Model> {
-  map: Map<RecordId, Record> = new Map()
+  map: Map<RecordId, WeakRef<Record>> = new Map()
+  _addsSinceSweep: number = 0
   tableName: TableName<Record>
   recordInsantiator: Instantiator<Record>
   _debugCollection: Collection<Record>
@@ -22,11 +24,36 @@ export default class RecordCache<Record extends Model> {
   }
 
   get(id: RecordId): Record | null | undefined {
-    return this.map.get(id)
+    return this._live(id)
+  }
+
+  _live(id: RecordId): Record | undefined {
+    return this.map.get(id)?.deref()
   }
 
   add(record: Record): void {
-    this.map.set(record.id, record)
+    this.map.set(record.id, new WeakRef(record))
+    // threshold grows with the map so bulk loads stay amortized O(1) per add
+    if (
+      ++this._addsSinceSweep >= Math.max(SWEEP_EVERY_ADDS, this.map.size >> 1)
+    )
+      this._sweep()
+  }
+
+  // Dead refs are dropped here and reported to the adapter, so both sides forget garbage-collected models.
+  // No FinalizationRegistry: Hermes support is uncertain.
+  _sweep(): void {
+    this._addsSinceSweep = 0
+    const dead: RecordId[] = []
+    this.map.forEach((ref, id) => {
+      if (!ref.deref()) dead.push(id)
+    })
+    if (!dead.length) return
+    dead.forEach((id) => this.map.delete(id))
+    this._debugCollection.database.adapter.underlyingAdapter.forgetCachedRecords(
+      this.tableName,
+      dead
+    )
   }
 
   delete(record: Record): void {
@@ -55,52 +82,33 @@ export default class RecordCache<Record extends Model> {
         return this._cachedModelForId(res)._raw
       }
 
-      const cachedRecord = this.map.get(res.id)
+      const cachedRecord = this._live(res.id)
       return cachedRecord ? cachedRecord._raw : res
     })
   }
 
   _cachedModelForId(id: RecordId): Record {
-    const record = this.map.get(id)
+    const record = this._live(id)
+    if (record) return record
 
-    if (!record) {
-      const message = `Record ID ${this.tableName}#${id} was sent over the bridge, but it's not cached`
-      logger.error(message)
+    // The model was garbage-collected before a sweep told the adapter: re-read its row and rebuild it
+    const raw =
+      this._debugCollection.database.adapter.underlyingAdapter.refetchForgottenRecord(
+        this.tableName,
+        id
+      )
+    if (raw) return this._modelForRaw(raw, false)
 
-      // Reaching this branch indicates a WatermelonDB/adapter bug. We should never get a record ID
-      // if we don't have it in our cache. This probably means that something crashed when adding to
-      // adapter-side cached record ID set. NozbeTeams telemetry indicates that this bug *does*
-      // nonetheless occur, so when it does, print out useful diagnostics and attempt to recover by
-      // resetting adapter-side cached set
-      try {
-        const adapter: any =
-          this._debugCollection.database.adapter.underlyingAdapter
-
-        // $FlowFixMe
-        if (adapter._clearCachedRecords) {
-          // $FlowFixMe
-          adapter._clearCachedRecords()
-        }
-
-        // $FlowFixMe
-        if (adapter._debugDignoseMissingRecord) {
-          // $FlowFixMe
-          adapter._debugDignoseMissingRecord(this.tableName, id)
-        }
-      } catch (error) {
-        logger.warn(`Ran into an error while running diagnostics:`)
-        logger.warn(error)
-      }
-
-      throw new Error(message)
-    }
-
-    return record
+    // Reaching this branch indicates a WatermelonDB/adapter bug: the adapter said the record is
+    // cached in JS, but it doesn't exist at all
+    const message = `Record ID ${this.tableName}#${id} was sent over the bridge, but it's not cached`
+    logger.error(message)
+    throw new Error(message)
   }
 
   _modelForRaw(raw: RawRecord, warnIfCached: boolean = true): Record {
     // Sanity check: is this already cached?
-    const cachedRecord = this.map.get(raw.id)
+    const cachedRecord = this._live(raw.id)
 
     if (cachedRecord) {
       // This may legitimately happen if we previously got ID without a record and we cleared

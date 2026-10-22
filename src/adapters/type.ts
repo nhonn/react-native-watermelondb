@@ -19,11 +19,11 @@ export type BatchOperation =
   | ['destroyPermanently', TableName<any>, RecordId]
 export type UnsafeExecuteOperations =
   | {
-      sqls: SQLiteQuery[]
-    }
+    sqls: SQLiteQuery[]
+  }
   | {
-      sqlString: SQL
-    }
+    sqlString: SQL
+  }
 export interface DatabaseAdapter {
   schema: AppSchema
   dbName: string
@@ -35,6 +35,10 @@ export interface DatabaseAdapter {
     id: RecordId,
     callback: ResultCallback<CachedFindResult>
   ): void
+  // Models for these ids were garbage-collected: send full rows for them again
+  forgetCachedRecords(table: TableName<any>, ids: RecordId[]): void
+  // Synchronously re-reads a record whose model was garbage-collected while still marked cached
+  refetchForgottenRecord(table: TableName<any>, id: RecordId): RawRecord | null
   // Fetches matching records. Should not send raw object if already cached in JS
   query(
     query: SerializedQuery,

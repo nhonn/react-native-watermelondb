@@ -148,9 +148,9 @@ describe('fetching queries', () => {
     // check if records were cached
     expect(collection._cache.map.size).toBe(2)
     // @ts-expect-error ported Flow test code is not type-safe here
-    expect(collection._cache.map.get('m1')).toBe(models[0])
+    expect(collection._cache.get('m1')).toBe(models[0])
     // @ts-expect-error ported Flow test code is not type-safe here
-    expect(collection._cache.map.get('m2')).toBe(models[1])
+    expect(collection._cache.get('m2')).toBe(models[1])
     // check if query was passed correctly
     // @ts-expect-error ported Flow test code is not type-safe here
     expect(adapter.query.mock.calls.length).toBe(1)
@@ -189,7 +189,29 @@ describe('fetching queries', () => {
     })
     // check cache
     // @ts-expect-error ported Flow test code is not type-safe here
-    expect(collection._cache.map.get('m2')).toBe(models[1])
+    expect(collection._cache.get('m2')).toBe(models[1])
+  })
+  it('recovers a garbage-collected cached record', async () => {
+    const { db, tasks } = mockDatabase()
+    const t = await db.write(() => tasks.create((r: any) => { r.name = 'hello' }))
+    tasks._cache.map.set(t.id, { deref: () => undefined } as any)
+    const [r] = await tasks.query().fetch()
+    expect(r).not.toBe(t)
+    expect(r!.id).toBe(t.id)
+    expect((r as any).name).toBe('hello')
+    const [r2] = await tasks.query().fetch()
+    expect(r2).toBe(r)
+  })
+  it('sweeps dead records and forgets them natively', async () => {
+    const { db, tasks } = mockDatabase()
+    const spy = jest.spyOn(db.adapter.underlyingAdapter, 'forgetCachedRecords')
+    const t = await db.write(() => tasks.create())
+    tasks._cache.map.set(t.id, { deref: () => undefined } as any)
+    await db.write(() =>
+      db.batch(Array.from({ length: 500 }, () => tasks.prepareCreate()))
+    )
+    expect(spy).toHaveBeenCalledWith('mock_tasks', [t.id])
+    expect(tasks._cache.map.has(t.id)).toBe(false)
   })
   it('fetches query records from cache even if full raw object was sent', async () => {
     const { tasks: collection, adapter } = mockDatabase()
@@ -212,7 +234,7 @@ describe('fetching queries', () => {
     collection._cache.add(m1)
 
     // fetch, check if error occured
-    const spy = jest.spyOn(logger, 'warn').mockImplementation(() => {})
+    const spy = jest.spyOn(logger, 'warn').mockImplementation(() => { })
     const models = await toPromise((cb) =>
       collection._fetchQuery(mockQuery(collection), cb)
     )
@@ -386,6 +408,7 @@ describe('Collection observation', () => {
       {
         record: t1,
         type: 'updated',
+        changedColumns: expect.any(Set),
       },
     ])
     unsubscribe1()
@@ -407,7 +430,7 @@ describe('Collection observation', () => {
     const subscriber1 = jest.fn()
     const unsubscribe1 = tasks.experimentalSubscribe(subscriber1)
     expect(subscriber1).toHaveBeenCalledTimes(0)
-    const unsubscribe2 = tasks.experimentalSubscribe(() => {})
+    const unsubscribe2 = tasks.experimentalSubscribe(() => { })
     unsubscribe2()
     unsubscribe2()
     await database.write(() => tasks.create())

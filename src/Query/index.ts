@@ -20,7 +20,11 @@ import type { Clause, QueryDescription } from '../QueryDescription'
 import type { default as Model, AssociationInfo, RecordId } from '../Model'
 import type Collection from '../Collection'
 import type { TableName, ColumnName } from '../Schema'
-import { getAssociations } from './helpers'
+import {
+ getAssociations,
+ getColumnDependencies,
+ type QueryColumnDependencies,
+} from './helpers'
 export type QueryAssociation = {
  from: TableName<any>
  to: TableName<any>
@@ -321,6 +325,15 @@ export default class Query<Record extends Model> {
   this.modelClass,
   // @ts-ignore lazy: evaluated on first access, after constructor
   this.collection.db
+ )
+
+ @lazy
+ _columnDependencies: QueryColumnDependencies | null = getColumnDependencies(
+  // @ts-ignore lazy: evaluated on first access, after constructor
+  this.table,
+  // @ts-ignore lazy: evaluated on first access, after constructor
+  this.description,
+  this.associations
  )
 
  @lazy

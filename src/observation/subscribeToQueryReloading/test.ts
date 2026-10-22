@@ -114,7 +114,7 @@ describe('subscribeToQueryReloading', () => {
       ),
       observer
     )
-    const waitForNextQuery = () => tasks.database.adapter.getLocal("x")
+    const waitForNextQuery = () => tasks.database.adapter.getLocal('x')
     await waitForNextQuery()
     expect(spy).toHaveBeenCalledTimes(1)
     expect(observer).toHaveBeenLastCalledWith([m1, m2])
@@ -142,7 +142,7 @@ describe('subscribeToQueryReloading', () => {
     expect(spy).toHaveBeenCalledTimes(3)
     unsubscribe()
   })
-  it('always reloads with skip', async () => {
+  it('reloads with skip only for dependent columns', async () => {
     const { db, tasks } = mockDatabase()
     const spy = jest.spyOn(tasks, '_fetchQuery')
     const m1 = await db.write(() => createTask(tasks, 'a', false))
@@ -150,11 +150,52 @@ describe('subscribeToQueryReloading', () => {
       tasks.query(Q.where('is_completed', true), Q.take(1), Q.skip(1)),
       jest.fn()
     )
-    const waitForNextQuery = () => tasks.database.adapter.getLocal("x")
+    const waitForNextQuery = () => tasks.database.adapter.getLocal('x')
     await waitForNextQuery()
     expect(spy).toHaveBeenCalledTimes(1)
     await updateTask(m1, (t: any) => {
       t.name = 'b'
+    })
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(1)
+    await updateTask(m1, (t: any) => {
+      t.isCompleted = true
+    })
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(2)
+    unsubscribe()
+  })
+  it('skips reload for non-dependent updates in joined queries', async () => {
+    const { db, tasks, projects } = mockDatabase()
+    const spy = jest.spyOn(tasks, '_fetchQuery')
+    let project: any
+    let task: any
+    await db.write(async () => {
+      project = await projects.create((p: any) => {
+        p.name = 'hello'
+      })
+      task = await tasks.create((t: any) => {
+        t.isCompleted = true
+        t.project.set(project)
+      })
+    })
+    const unsubscribe = subscribeToQueryReloading(
+      tasks.query(
+        Q.where('is_completed', true),
+        Q.on('mock_projects', Q.where('name', 'hello'))
+      ),
+      jest.fn()
+    )
+    const waitForNextQuery = () => tasks.database.adapter.getLocal('x')
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(1)
+    await updateTask(task, (t: any) => {
+      t.position = 5
+    })
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(1)
+    await updateTask(project, (p: any) => {
+      p.name = 'other'
     })
     await waitForNextQuery()
     expect(spy).toHaveBeenCalledTimes(2)

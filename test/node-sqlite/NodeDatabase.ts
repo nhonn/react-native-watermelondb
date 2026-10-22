@@ -139,6 +139,10 @@ export class NodeDatabase {
     })
   }
 
+  forget(table: string, ids: string[]): void {
+    ids.forEach((id) => this._cache.delete(`${table}$${id}`))
+  }
+
   find(table: string, id: string): string | Row | null {
     const key = `${table}$${id}`
     if (this._cache.has(key)) {

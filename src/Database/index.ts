@@ -130,10 +130,13 @@ export default class Database {
    const { table } = record.constructor as any // faster than Model.table
 
    let changeType!: 'created' | 'updated' | 'destroyed'
+   let changedColumns: Set<string> | null = null
 
    if (preparedState === 'update') {
     batchOperations.push(['update', table, raw])
     changeType = 'updated'
+    changedColumns = record._changedColumns
+    record._changedColumns = null
    } else if (preparedState === 'create') {
     batchOperations.push(['create', table, raw])
     changeType = 'created'
@@ -158,10 +161,11 @@ export default class Database {
     changeNotifications[table] = []
    }
 
-   changeNotifications[table].push({
-    record,
-    type: changeType,
-   })
+   changeNotifications[table].push(
+    changedColumns
+     ? { record, type: changeType, changedColumns }
+     : { record, type: changeType }
+   )
   })
   await this.adapter.batch(batchOperations)
 

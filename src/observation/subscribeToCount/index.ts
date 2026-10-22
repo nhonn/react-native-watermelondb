@@ -1,54 +1,40 @@
-import {
-  Observable,
-  switchMap,
-  distinctUntilChanged,
-  throttleTime,
-} from '../../utils/rx'
 import { logError } from '../../utils/common'
-import { toPromise } from '../../utils/fp/Result'
 import type { Unsubscribe } from '../../utils/subscriptions'
 import '../../utils/subscriptions'
 import type Query from '../../Query'
 import type Model from '../../Model'
+import type { TableName } from '../../Schema'
+import type { CollectionChangeSet } from '../../Collection'
+import { encodeConditions, type Matcher } from '../encodeMatcher'
+import canAffectQuery from '../canAffectQuery'
 let isThrottlingDisabled = false
 export function experimentalDisableObserveCountThrottling(): void {
   isThrottlingDisabled = true
 }
 
-// Produces an observable version of a query count by re-querying the database
-// when any change occurs in any of the relevant Stores.
-//
-// TODO: Potential optimizations:
-// - increment/decrement counter using matchers on insert/delete
-function observeCountThrottled<Record extends Model>(
-  query: Query<Record>
-): Observable<number> {
-  const { collection } = query
-  return collection.database.withChangesForTables(query.allTables).pipe(
-    throttleTime(250), // Note: this has a bug, but we'll delete it anyway
-    switchMap(() =>
-      toPromise<number>((callback) => collection._fetchCount(query, callback))
-    ),
-    distinctUntilChanged<number>()
-  )
-}
+const THROTTLE_MS = 250
 
+// Produces a count subscription by re-counting when a change can affect the query.
+// Throttled mode fires on the leading and trailing edge: the last change in a window is always counted.
 export default function subscribeToCount<Record extends Model>(
   query: Query<Record>,
   isThrottled: boolean,
   subscriber: (arg0: number) => void
 ): Unsubscribe {
-  if (isThrottled && !isThrottlingDisabled) {
-    const observable = observeCountThrottled(query)
-    const subscription = observable.subscribe(subscriber)
-    return () => subscription.unsubscribe()
-  }
-
-  const { collection } = query
-  let unsubscribed = false
+  const { collection, table, description } = query
+  const throttled = isThrottled && !isThrottlingDisabled
+  const dependencies = query._columnDependencies
+  // created records can be matched in memory only when the count reads just the primary table
+  let matcher: Matcher<Record> | null | undefined =
+    query.secondaryTables.length || description.sql ? null : undefined
   let previousCount = -1
+  let lastFetchAt = 0
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let unsubscribed = false
 
-  const observeCountFetch = () => {
+  function fetchCount(): void {
+    timer = null
+    lastFetchAt = Date.now()
     collection._fetchCount(query, (result) => {
       if (result.error) {
         logError(result.error.toString())
@@ -62,18 +48,45 @@ export default function subscribeToCount<Record extends Model>(
     })
   }
 
+  function isRelevant(
+    changes: [TableName<any>, CollectionChangeSet<any>][]
+  ): boolean {
+    return changes.some(([changedTable, changeSet]) =>
+      changeSet.some((change) => {
+        if (!canAffectQuery(dependencies, changedTable, change)) return false
+        if (change.type !== 'created' || changedTable !== table) return true
+        if (matcher === undefined) {
+          try {
+            matcher = encodeConditions(description.where) as any
+          } catch {
+            matcher = null
+          }
+        }
+        return !matcher || matcher(change.record._raw)
+      })
+    )
+  }
+
   const unsubscribe = collection.database.experimentalSubscribe(
     query.allTables,
-    observeCountFetch,
+    (changes) => {
+      if (!isRelevant(changes)) return
+      if (!throttled) return fetchCount()
+      if (timer) return
+      const wait = lastFetchAt + THROTTLE_MS - Date.now()
+      if (wait <= 0) fetchCount()
+      else timer = setTimeout(fetchCount, wait)
+    },
     {
       name: 'subscribeToCount',
       query,
       subscriber,
     }
   )
-  observeCountFetch()
+  fetchCount()
   return () => {
     unsubscribed = true
+    if (timer) clearTimeout(timer)
     unsubscribe()
   }
 }
