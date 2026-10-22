@@ -4,8 +4,8 @@
 import type { ComponentType, NamedExoticComponent } from 'react'
 import type { Observable } from 'rxjs'
 import { Component, createElement } from 'react'
-import hoistNonReactStatics from 'hoist-non-react-statics'
-import type { NonReactStatics } from 'hoist-non-react-statics'
+import hoistNonReactStatics from '../../utils/hoistStatics'
+import type { NonReactStatics } from '../../utils/hoistStatics'
 import scheduleForCleanup from './garbageCollector'
 export interface ObservableConvertible<T> {
   observe(): Observable<T>

@@ -1,4 +1,4 @@
-import { times, map, length } from 'rambdax'
+import { times } from '../../../__tests__/utils/fp'
 import { noop } from '../../../utils/fp'
 import { randomId } from '../../../utils/common'
 import {
@@ -71,7 +71,6 @@ describe('synchronize - benchmark', () => {
     // TODO: Remove the flag -- temporarily taking over this test to test _unsafeBatchPerCollection
     await synchronize({
       database,
-      // @ts-expect-error ported Flow test code is not type-safe here
       pullChanges,
       pushChanges,
       _unsafeBatchPerCollection: true,
@@ -89,8 +88,7 @@ describe('synchronize - benchmark', () => {
       })
     ).toBe(false)
     const pushedChanges = pushChanges.mock.calls[0][0].changes
-    // @ts-expect-error ported Flow test code is not type-safe here
-    const pushedCounts = map(map(length), pushedChanges)
+    const pushedCounts = Object.fromEntries(Object.entries(pushedChanges).map(([t, c]: [string, any]) => [t, Object.fromEntries(Object.entries(c).map(([k, v]: [string, any]) => [k, v.length]))]))
     expect(pushedCounts).toEqual({
       mock_projects: {
         created: sample,
@@ -156,7 +154,6 @@ describe('synchronize - benchmark', () => {
     // run replacement (with the same data, there should be no changes)
     await synchronize({
       database,
-      // @ts-expect-error ported Flow test code is not type-safe here
       pullChanges: async () => ({
         changes: makeChangeSet({
           mock_tasks: {

@@ -1,4 +1,4 @@
-import { last } from 'rambdax'
+import { last } from '../../__tests__/utils/fp'
 import { mockDatabase } from '../../__tests__/testModels'
 import * as Q from '../../QueryDescription'
 import subscribeToQueryWithColumns from './index'

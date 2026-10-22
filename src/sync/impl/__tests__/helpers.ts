@@ -1,4 +1,3 @@
-import { change } from 'rambdax'
 import { allPromises } from '../../../utils/fp'
 import { mockDatabase } from '../../../__tests__/testModels'
 import { sanitizedRaw } from '../../../RawRecord'
@@ -83,7 +82,13 @@ export const emptyLocalChanges = Object.freeze({
   changes: emptyChangeSet,
   affectedRecords: [],
 })
-export const makeChangeSet = (set: any) => change(emptyChangeSet, '', set)
+export const makeChangeSet = (set: any) => {
+  const result: any = structuredClone(emptyChangeSet)
+  Object.keys(set).forEach((table) => {
+    result[table] = { ...result[table], ...set[table] }
+  })
+  return result
+}
 export const sorted = (models: any) => {
   const copy = models.slice()
   copy.sort((a: any, b: any) => {

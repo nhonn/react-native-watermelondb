@@ -1,5 +1,5 @@
 import React from 'react'
-import hoistNonReactStatics from 'hoist-non-react-statics'
+import hoistNonReactStatics from '../utils/hoistStatics'
 import type Database from '../Database'
 import { DatabaseConsumer } from './DatabaseContext'
 type WithDatabaseProps<T extends {}> = T & {

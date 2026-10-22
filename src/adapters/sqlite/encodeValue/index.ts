@@ -1,5 +1,3 @@
-// @ts-expect-error sql-escape-string ships no types
-import escapeString from 'sql-escape-string'
 import { logError } from '../../../utils/common'
 import type { Value } from '../../../QueryDescription' // Note: SQLite doesn't support literal TRUE and FALSE; expects 1 or 0 instead
 // It also doesn't encode strings the same way
@@ -22,7 +20,7 @@ export default function encodeValue(value: Value): string {
     return `${value}`
   } else if (typeof value === 'string') {
     // TODO: We shouldn't ever encode SQL values directly — use placeholders
-    return escapeString(value)
+    return `'${value.replace(/'/g, "''")}'`
   }
 
   throw new Error('Invalid value to encode into query')

@@ -1,5 +1,4 @@
-import clone from 'lodash.clonedeep'
-import { delay, omit } from 'rambdax'
+import { delay, omit } from '../../../__tests__/utils/fp'
 import { skip as skip$ } from 'rxjs/operators'
 import { expectToRejectWithMessage } from '../../../__tests__/utils'
 import {
@@ -201,7 +200,6 @@ describe('synchronize', () => {
     }))
     await synchronize({
       database,
-      // @ts-expect-error ported Flow test code is not type-safe here
       pullChanges,
       pushChanges: jest.fn(),
     })
@@ -268,7 +266,6 @@ describe('synchronize', () => {
     const log: any = {}
     await synchronize({
       database,
-      // @ts-expect-error ported Flow test code is not type-safe here
       pullChanges,
       pushChanges,
       log,
@@ -410,7 +407,6 @@ describe('synchronize', () => {
 
     await synchronize({
       database,
-      // @ts-expect-error ported Flow test code is not type-safe here
       pullChanges,
       pushChanges: jest.fn(),
       conflictResolver,
@@ -562,7 +558,6 @@ describe('synchronize', () => {
     const pushChanges = jest.fn(() => Promise.reject(new Error('push-fail')))
     const sync = await synchronize({
       database,
-      // @ts-expect-error ported Flow test code is not type-safe here
       pullChanges,
       pushChanges,
     }).catch((e) => e)
@@ -606,7 +601,6 @@ describe('synchronize', () => {
     let syncCompleted = false
     const sync = synchronize({
       database,
-      // @ts-expect-error ported Flow test code is not type-safe here
       pullChanges,
       pushChanges,
     }).then(() => {
@@ -653,7 +647,7 @@ describe('synchronize', () => {
     // @ts-expect-error ported Flow test code is not type-safe here
     const pushedChanges = pushChanges.mock.calls[0][0].changes
     expect(pushedChanges).not.toEqual(localChanges.changes)
-    const expectedPushedChanges = clone(localChanges.changes)
+    const expectedPushedChanges = structuredClone(localChanges.changes)
     expectedPushedChanges.mock_projects.created = [
       ...expectedPushedChanges.mock_projects.created,
       project1!,

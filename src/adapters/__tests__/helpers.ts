@@ -1,5 +1,6 @@
-import { sortBy, identity, pipe, pluck, shuffle } from 'rambdax'
-import { allPromises, toPairs } from '../../utils/fp'
+import { allPromises, toPairs, identity } from '../../utils/fp'
+import sortBy from '../../utils/fp/sortBy'
+import { pluck, shuffle } from '../../__tests__/utils/fp'
 import Model from '../../Model'
 import Query from '../../Query'
 import { appSchema, tableSchema } from '../../Schema'
@@ -312,8 +313,8 @@ const insertAll = async (adapter: any, table: any, records: any) =>
     })
   )
 
-const sort = sortBy(identity)
-const getExpectedResults = pipe(pluck('id'), sort)
+const sort = (list: any[]) => sortBy(identity, list)
+const getExpectedResults = (list: any[]) => sort(pluck('id', list))
 export const expectSortedEqual = (actual: any, expected: any) => {
   expect(sort(actual)).toEqual(sort(expected))
 }

@@ -1,4 +1,4 @@
-import { omit } from 'rambdax'
+import { omit } from '../../../__tests__/utils/fp'
 import { expectToRejectWithMessage } from '../../../__tests__/utils'
 import * as Q from '../../../QueryDescription'
 import {

@@ -1,4 +1,3 @@
-import clone from 'lodash.clonedeep'
 import {
   makeDatabase,
   emptyLocalChanges,
@@ -30,7 +29,7 @@ describe('fetchLocalChanges', () => {
     expect(pUpdated._raw._status).toBe('updated')
     expect(pUpdated._raw._changed).toBe('name')
     expect(tDeleted._raw._status).toBe('deleted')
-    const expectedChanges = clone(
+    const expectedChanges = structuredClone(
       makeChangeSet({
         mock_projects: {
           created: [pCreated1._raw, pCreated2._raw],
@@ -73,7 +72,7 @@ describe('fetchLocalChanges', () => {
     const { database } = makeDatabase()
     const { pUpdated } = await makeLocalChanges(database)
     const { changes } = await fetchLocalChanges(database)
-    const changesCloned = clone(changes)
+    const changesCloned = structuredClone(changes)
     // raws should be cloned - further changes don't affect result
     await database.write(() =>
       pUpdated.update((p: any) => {
