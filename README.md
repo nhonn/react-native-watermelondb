@@ -8,11 +8,8 @@
 
 ## Requirements
 
-- React Native v0.76.0 or higher
+- React Native v0.76.0 or higher (New Architecture supported; it's JSI-based via Nitro, with no bridge or TurboModule codegen)
 - Node 18.0.0 or higher
-
-> [!IMPORTANT]  
-> To Support `Nitro Views` you need to install React Native version v0.78.0 or higher.
 
 ## Installation
 

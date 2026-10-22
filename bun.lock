@@ -31,7 +31,7 @@
       },
       "peerDependencies": {
         "react": "*",
-        "react-native": "*",
+        "react-native": ">=0.76.0",
         "react-native-nitro-modules": "*",
         "rxjs": "^7",
       },
