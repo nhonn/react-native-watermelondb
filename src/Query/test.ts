@@ -514,3 +514,25 @@ describe('Query', () => {
     )
   })
 })
+
+describe('Query memoized getters', () => {
+  it('compute once and return the same reference', () => {
+    const query = new Query(mockCollection as any, [Q.where('id', 'a')])
+    const spy = jest.spyOn(JSON, 'stringify')
+    const key = query._descriptionKey
+    const callsAfterFirst = spy.mock.calls.length
+    expect(query._descriptionKey).toBe(key)
+    expect(spy.mock.calls.length).toBe(callsAfterFirst)
+    spy.mockRestore()
+    expect(query.associations).toBe(query.associations)
+    expect(query._serialized).toBe(query._serialized)
+    expect(query._columnDependencies).toBe(query._columnDependencies)
+    expect(query._columnDependencies).not.toBeNull()
+  })
+  it('caches a null _columnDependencies', () => {
+    const query = new Query(mockCollection as any, [Q.unsafeSqlQuery('select * from mock_tasks')])
+    expect(query._columnDependencies).toBeNull()
+    expect((query as any)._columnDependenciesCache).toBeNull()
+    expect(query._columnDependencies).toBeNull()
+  })
+})

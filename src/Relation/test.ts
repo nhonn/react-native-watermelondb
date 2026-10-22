@@ -156,3 +156,11 @@ describe('Relation', () => {
     expect(relation.constructor._wmelonTag).toBe('relation')
   })
 })
+describe('Relation memoized getters', () => {
+  it('_cachedObservable is created once', () => {
+    const { tasks } = mockDatabase()
+    const primary = new MockTask(tasks, { project_id: 's1' } as any)
+    const relation = new Relation(primary, 'mock_projects', 'project_id', { isImmutable: false })
+    expect(relation._cachedObservable).toBe(relation._cachedObservable)
+  })
+})

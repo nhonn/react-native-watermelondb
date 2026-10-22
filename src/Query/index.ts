@@ -10,8 +10,6 @@ import {
 } from '../utils/fp'
 import type { Unsubscribe } from '../utils/subscriptions'
 import { SharedSubscribable } from '../utils/subscriptions'
-// import from decorarators break the app on web production WTF ¯\_(ツ)_/¯
-import lazy from '../decorators/lazy'
 import subscribeToCount from '../observation/subscribeToCount'
 import subscribeToQuery from '../observation/subscribeToQuery'
 import subscribeToQueryWithColumns from '../observation/subscribeToQueryWithColumns'
@@ -57,12 +55,13 @@ export default class Query<Record extends Model> {
  // TODO: Should this be public API? QueryDescription structure changes quite a bit...
  description: QueryDescription
  _rawDescription: QueryDescription
- @lazy
- _descriptionKey: string = JSON.stringify(
-  // @ts-ignore lazy: evaluated on first access, after constructor
-  this.description,
-  descriptionKeyReplacer
- )
+ private _descriptionKeyCache?: string
+ get _descriptionKey(): string {
+  return (this._descriptionKeyCache ??= JSON.stringify(
+   this.description,
+   descriptionKeyReplacer
+  ))
+ }
 
  get _cachedSubscribable(): SharedSubscribable<Record[]> {
   return this.collection._getSharedSubscribable(
@@ -318,30 +317,35 @@ export default class Query<Record extends Model> {
   return [this.table].concat(this.secondaryTables)
  }
 
- @lazy
- associations: QueryAssociation[] = getAssociations(
-  // @ts-ignore lazy: evaluated on first access, after constructor
-  this.description,
-  this.modelClass,
-  // @ts-ignore lazy: evaluated on first access, after constructor
-  this.collection.db
- )
+ private _associationsCache?: QueryAssociation[]
+ get associations(): QueryAssociation[] {
+  return (this._associationsCache ??= getAssociations(
+   this.description,
+   this.modelClass,
+   this.collection.db
+  ))
+ }
 
- @lazy
- _columnDependencies: QueryColumnDependencies | null = getColumnDependencies(
-  // @ts-ignore lazy: evaluated on first access, after constructor
-  this.table,
-  // @ts-ignore lazy: evaluated on first access, after constructor
-  this.description,
-  this.associations
- )
+ // null is a valid result, so cache with an undefined check
+ private _columnDependenciesCache?: QueryColumnDependencies | null
+ get _columnDependencies(): QueryColumnDependencies | null {
+  if (this._columnDependenciesCache === undefined) {
+   this._columnDependenciesCache = getColumnDependencies(
+    this.table,
+    this.description,
+    this.associations
+   )
+  }
+  return this._columnDependenciesCache
+ }
 
- @lazy
- _serialized: SerializedQuery = {
-  table: this.table,
-  // @ts-ignore lazy: evaluated on first access, after constructor
-  description: this.description,
-  associations: this.associations,
+ private _serializedCache?: SerializedQuery
+ get _serialized(): SerializedQuery {
+  return (this._serializedCache ??= {
+   table: this.table,
+   description: this.description,
+   associations: this.associations,
+  })
  }
 
  // Serialized version of Query (e.g. for sending to web worker)

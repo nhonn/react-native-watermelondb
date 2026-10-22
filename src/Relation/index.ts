@@ -1,7 +1,6 @@
 import type { ConnectableObservable, Observable } from '../utils/rx'
 import invariant from '../utils/common/invariant'
 import publishReplayLatestWhileConnected from '../utils/rx/publishReplayLatestWhileConnected'
-import lazy from '../decorators/lazy'
 import type { default as Model, RecordId } from '../Model'
 import type { ColumnName, TableName } from '../Schema'
 import { createObservable } from './helpers'
@@ -20,12 +19,14 @@ export default class Relation<T extends Model | null | undefined> {
   _columnName: ColumnName
   _relationTableName: TableName<NonNullable<T>>
   _isImmutable: boolean
-  @lazy
-  _cachedObservable: Observable<T> = (
-    createObservable(this).pipe(
-      publishReplayLatestWhileConnected
-    ) as ConnectableObservable<T>
-  ).refCount()
+  private _cachedObservableCache?: Observable<T>
+  get _cachedObservable(): Observable<T> {
+    return (this._cachedObservableCache ??= (
+      createObservable(this).pipe(
+        publishReplayLatestWhileConnected
+      ) as ConnectableObservable<T>
+    ).refCount())
+  }
 
   constructor(
     model: Model,
@@ -47,8 +48,7 @@ export default class Relation<T extends Model | null | undefined> {
     if (this._isImmutable) {
       invariant(
         this._model._preparedState === 'create',
-        `Cannot change property marked as @immutableRelation ${
-          Object.getPrototypeOf(this._model).constructor.name
+        `Cannot change property marked as @immutableRelation ${Object.getPrototypeOf(this._model).constructor.name
         } - ${this._columnName}`
       )
     }
