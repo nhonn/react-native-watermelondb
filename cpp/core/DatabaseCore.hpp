@@ -46,7 +46,6 @@ private:
   void step(sqlite3_stmt* stmt, const std::string& sql); // expects SQLITE_DONE
   void execSimple(const char* sql);
   void rollbackQuietly();
-  RawRow readRow(sqlite3_stmt* stmt);
 
   std::string _path;
   bool _exclusive;

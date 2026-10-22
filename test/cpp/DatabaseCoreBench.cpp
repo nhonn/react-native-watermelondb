@@ -136,8 +136,8 @@ int main() {
       DatabaseCore dc(DB, false);
       dc.open();
       const std::string q = "select \"tasks\".* from \"tasks\"";
-      c[1] = ms([&] { CHECK(dc.query("tasks", q, {}).data->rows.size() == N); });
-      c[2] = ms([&] { CHECK(dc.query("tasks", q, {}).data->rows.size() == N); });
+      c[1] = ms([&] { CHECK(dc.query("tasks", q, {}).data->rowCount == N); });
+      c[2] = ms([&] { CHECK(dc.query("tasks", q, {}).data->rowCount == N); });
     }
     {
       sqlite3* db = rawOpen();
@@ -160,7 +160,7 @@ int main() {
       DatabaseCore dc(DB, false);
       dc.open();
       c[3] = ms([&] {
-        for (int i = 0; i < N; i += 10) CHECK(std::holds_alternative<RawRow>(dc.find("tasks", idOf(i))));
+        for (int i = 0; i < N; i += 10) CHECK(std::holds_alternative<FoundRecord>(dc.find("tasks", idOf(i))));
       });
     }
     {

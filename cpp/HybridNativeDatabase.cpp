@@ -65,10 +65,8 @@ std::shared_ptr<Promise<void>> HybridNativeDatabase::setUpWithMigrations(const s
   return enqueue<void>([=](DatabaseCore& core) { core.migrate(migrationSql, static_cast<int>(fromVersion), static_cast<int>(toVersion)); });
 }
 
-std::shared_ptr<Promise<std::variant<NullType, std::string, std::unordered_map<std::string, std::variant<NullType, bool, std::string, double>>>>>
-HybridNativeDatabase::find(const std::string& table, const std::string& id) {
-  return enqueue<std::variant<NullType, std::string, std::unordered_map<std::string, std::variant<NullType, bool, std::string, double>>>>(
-      [=](DatabaseCore& core) { return core.find(table, id); });
+std::shared_ptr<Promise<::watermelondb::FindResult>> HybridNativeDatabase::find(const std::string& table, const std::string& id) {
+  return enqueue<::watermelondb::FindResult>([=](DatabaseCore& core) { return core.find(table, id); });
 }
 
 std::shared_ptr<Promise<::watermelondb::RecordSet>>
@@ -178,8 +176,7 @@ void HybridNativeDatabase::setUpWithMigrationsSync(const std::string& migrationS
   runSync([&](DatabaseCore& core) { core.migrate(migrationSql, static_cast<int>(fromVersion), static_cast<int>(toVersion)); });
 }
 
-std::variant<NullType, std::string, std::unordered_map<std::string, std::variant<NullType, bool, std::string, double>>>
-HybridNativeDatabase::findSync(const std::string& table, const std::string& id) {
+::watermelondb::FindResult HybridNativeDatabase::findSync(const std::string& table, const std::string& id) {
   return runSync([&](DatabaseCore& core) { return core.find(table, id); });
 }
 

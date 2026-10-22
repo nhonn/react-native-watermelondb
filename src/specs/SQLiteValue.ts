@@ -15,5 +15,11 @@ export type RawRows = CustomType<
   '::watermelondb::RecordSet',
   { include: 'RecordSetJSI.hpp' }
 >
-export type FindResult = string | Record<string, SQLiteValue> | null
+// One-row `::watermelondb::FoundRecord`, converted straight to the record object.
+export type FoundRecord = CustomType<
+  Record<string, SQLiteValue>,
+  '::watermelondb::FoundRecord',
+  { include: 'RecordSetJSI.hpp' }
+>
+export type FindResult = string | FoundRecord | null // string = id already cached in JS
 export type LocalValue = string | null

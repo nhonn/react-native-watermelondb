@@ -33,9 +33,8 @@
 #include <string>
 #include <optional>
 #include <NitroModules/Null.hpp>
-#include <variant>
-#include <unordered_map>
 #include "RecordSetJSI.hpp"
+#include <variant>
 #include <vector>
 
 namespace margelo::nitro::watermelondb {
@@ -46,7 +45,7 @@ namespace margelo::nitro::watermelondb {
   struct NativeReadResult final {
   public:
     std::optional<std::string> error     SWIFT_PRIVATE;
-    std::optional<std::variant<nitro::NullType, std::string, std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>>> find     SWIFT_PRIVATE;
+    std::optional<std::variant<nitro::NullType, std::string, ::watermelondb::FoundRecord>> find     SWIFT_PRIVATE;
     std::optional<::watermelondb::RecordSet> records     SWIFT_PRIVATE;
     std::optional<std::vector<std::string>> ids     SWIFT_PRIVATE;
     std::optional<double> count     SWIFT_PRIVATE;
@@ -54,10 +53,10 @@ namespace margelo::nitro::watermelondb {
 
   public:
     NativeReadResult() = default;
-    explicit NativeReadResult(std::optional<std::string> error, std::optional<std::variant<nitro::NullType, std::string, std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>>> find, std::optional<::watermelondb::RecordSet> records, std::optional<std::vector<std::string>> ids, std::optional<double> count, std::optional<std::variant<nitro::NullType, std::string>> local): error(error), find(find), records(records), ids(ids), count(count), local(local) {}
+    explicit NativeReadResult(std::optional<std::string> error, std::optional<std::variant<nitro::NullType, std::string, ::watermelondb::FoundRecord>> find, std::optional<::watermelondb::RecordSet> records, std::optional<std::vector<std::string>> ids, std::optional<double> count, std::optional<std::variant<nitro::NullType, std::string>> local): error(error), find(find), records(records), ids(ids), count(count), local(local) {}
 
   public:
-    // NativeReadResult is not equatable because these properties are not equatable: records
+    // NativeReadResult is not equatable because these properties are not equatable: find, records
   };
 
 } // namespace margelo::nitro::watermelondb
@@ -71,7 +70,7 @@ namespace margelo::nitro {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::watermelondb::NativeReadResult(
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "error"))),
-        JSIConverter<std::optional<std::variant<nitro::NullType, std::string, std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "find"))),
+        JSIConverter<std::optional<std::variant<nitro::NullType, std::string, ::watermelondb::FoundRecord>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "find"))),
         JSIConverter<std::optional<::watermelondb::RecordSet>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "records"))),
         JSIConverter<std::optional<std::vector<std::string>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "ids"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "count"))),
@@ -81,7 +80,7 @@ namespace margelo::nitro {
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::watermelondb::NativeReadResult& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "error"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.error));
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "find"), JSIConverter<std::optional<std::variant<nitro::NullType, std::string, std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>>>>::toJSI(runtime, arg.find));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "find"), JSIConverter<std::optional<std::variant<nitro::NullType, std::string, ::watermelondb::FoundRecord>>>::toJSI(runtime, arg.find));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "records"), JSIConverter<std::optional<::watermelondb::RecordSet>>::toJSI(runtime, arg.records));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "ids"), JSIConverter<std::optional<std::vector<std::string>>>::toJSI(runtime, arg.ids));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "count"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.count));
@@ -97,7 +96,7 @@ namespace margelo::nitro {
         return false;
       }
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "error")))) return false;
-      if (!JSIConverter<std::optional<std::variant<nitro::NullType, std::string, std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>>>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "find")))) return false;
+      if (!JSIConverter<std::optional<std::variant<nitro::NullType, std::string, ::watermelondb::FoundRecord>>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "find")))) return false;
       if (!JSIConverter<std::optional<::watermelondb::RecordSet>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "records")))) return false;
       if (!JSIConverter<std::optional<std::vector<std::string>>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "ids")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "count")))) return false;

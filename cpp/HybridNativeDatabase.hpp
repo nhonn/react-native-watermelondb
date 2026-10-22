@@ -15,7 +15,7 @@ public:
   std::shared_ptr<Promise<InitializeResult>> initialize(double expectedVersion) override;
   std::shared_ptr<Promise<void>> setUpWithSchema(const std::string& schemaSql, double schemaVersion) override;
   std::shared_ptr<Promise<void>> setUpWithMigrations(const std::string& migrationSql, double fromVersion, double toVersion) override;
-  std::shared_ptr<Promise<std::variant<NullType, std::string, std::unordered_map<std::string, std::variant<NullType, bool, std::string, double>>>>>
+  std::shared_ptr<Promise<::watermelondb::FindResult>>
   find(const std::string& table, const std::string& id) override;
   std::shared_ptr<Promise<::watermelondb::RecordSet>> query(const std::string& table, const std::string& sql,
                                                             const std::vector<std::variant<NullType, bool, std::string, double>>& args) override;
@@ -36,7 +36,7 @@ public:
   InitializeResult initializeSync(double expectedVersion) override;
   void setUpWithSchemaSync(const std::string& schemaSql, double schemaVersion) override;
   void setUpWithMigrationsSync(const std::string& migrationSql, double fromVersion, double toVersion) override;
-  std::variant<NullType, std::string, std::unordered_map<std::string, std::variant<NullType, bool, std::string, double>>>
+  ::watermelondb::FindResult
   findSync(const std::string& table, const std::string& id) override;
   ::watermelondb::RecordSet querySync(const std::string& table, const std::string& sql,
                                       const std::vector<std::variant<NullType, bool, std::string, double>>& args) override;

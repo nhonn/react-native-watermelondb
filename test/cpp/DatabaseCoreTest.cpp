@@ -15,10 +15,27 @@ static NativeBatchOperation insertOp(double cache, const char* id, const char* n
                               {{S(id), S(name)}}};
 }
 
-static const SQLiteValue& col(const RecordSet& set, size_t row, const char* name) {
-  const auto& columns = set.data->columns;
+using Kind = RecordSetData::Kind;
+
+static const RecordSetData::Cell& col(const RecordSetData& data, size_t row, const char* name) {
+  const auto& columns = data.columns;
   const size_t i = static_cast<size_t>(std::find(columns.begin(), columns.end(), name) - columns.begin());
-  return std::get<std::vector<SQLiteValue>>(set.data->rows[row])[i];
+  assert(i < columns.size());
+  const size_t start = data.rowStart(row);
+  assert(data.cell(start).kind != Kind::Id);
+  return data.cell(start + i);
+}
+
+static std::string str(const RecordSetData& data, size_t row, const char* name) {
+  const auto& cell = col(data, row, name);
+  assert(cell.kind == Kind::Text);
+  return std::string(data.view(cell));
+}
+
+static std::string idRow(const RecordSetData& data, size_t row) {
+  const auto& cell = data.cell(data.rowStart(row));
+  assert(cell.kind == Kind::Id);
+  return std::string(data.view(cell));
 }
 
 template <typename F> static bool throws(F f) {
@@ -46,15 +63,16 @@ int main() {
 
   core.batch({insertOp(0, "c", "C")});
   auto found = core.find("tasks", "c");
-  auto& row = std::get<RawRow>(found);
-  assert(std::get<std::string>(row.at("name")) == "C");
+  const auto& record = *std::get<FoundRecord>(found).data;
+  assert(record.rowCount == 1 && str(record, 0, "name") == "C");
   assert(std::get<std::string>(core.find("tasks", "c")) == "c");
   assert(std::holds_alternative<margelo::nitro::NullType>(core.find("tasks", "zzz")));
 
   auto records = core.query("tasks", "select * from tasks order by id", {});
-  assert(records.data->rows.size() == 3);
-  assert(std::get<std::string>(records.data->rows[0]) == "a");
-  assert(std::get<std::string>(records.data->rows[2]) == "c");
+  assert(records.data->rowCount == 3);
+  assert(idRow(*records.data, 0) == "a"); // cached by the batch -> bare id
+  assert(idRow(*records.data, 1) == "b");
+  assert(idRow(*records.data, 2) == "c"); // cached by the find above
 
   assert(core.queryIds("select id from tasks where name = ?", {S("B")}) == std::vector<std::string>{"b"});
   assert(core.count("select count(*) as count from tasks", {}) == 3);
@@ -81,19 +99,46 @@ int main() {
   assert(throws([&] { core.migrate("alter table tasks add column extra2;", 1, 3); }));
 
   auto raw = core.unsafeQueryRaw("select * from tasks where id = ?", {S("b")});
-  assert(raw.data->rows.size() == 1);
-  assert(std::get<std::string>(col(raw, 0, "name")) == "B");
-  assert(std::holds_alternative<margelo::nitro::NullType>(col(raw, 0, "extra")));
+  assert(raw.data->rowCount == 1);
+  assert(str(*raw.data, 0, "name") == "B");
+  assert(col(*raw.data, 0, "extra").kind == Kind::Null);
 
   // re-prepare: the query cached before the migrate must report the new column
   core.batch({insertOp(0, "e", "E")});
   auto reprepared = core.query("tasks", "select * from tasks order by id", {});
   const auto& cols = reprepared.data->columns;
   assert(std::find(cols.begin(), cols.end(), "extra") != cols.end());
-  const size_t last = reprepared.data->rows.size() - 1;
-  assert(std::get<std::vector<SQLiteValue>>(reprepared.data->rows[last]).size() == cols.size());
-  assert(std::holds_alternative<margelo::nitro::NullType>(col(reprepared, last, "extra")));
-  assert(std::get<std::string>(reprepared.data->rows[0]) == "b");
+  const size_t last = reprepared.data->rowCount - 1;
+  assert(col(*reprepared.data, last, "extra").kind == Kind::Null);
+  assert(str(*reprepared.data, last, "name") == "E");
+  assert(idRow(*reprepared.data, 0) == "b");
+
+  // text is stored in a shared arena: long and non-ASCII values must round-trip intact next to other rows
+  const char* longName = "h\xc3\xa9llo w\xc3\xb6rld - a name far longer than any small-string buffer";
+  core.batch({insertOp(0, "g", longName), insertOp(0, "h", "H")});
+  auto mixed = core.query("tasks", "select * from tasks where id in ('g', 'h') order by id", {});
+  assert(mixed.data->rowCount == 2);
+  assert(str(*mixed.data, 0, "name") == longName);
+  assert(str(*mixed.data, 1, "name") == "H");
+
+  // many rows span several cell/text chunks; mass cache removal (set shrink) must leave the survivors cached
+  std::vector<NativeBatchOperation> adds, removes;
+  for (int i = 0; i < 3000; i++) {
+    adds.push_back(insertOp(1, ("m" + std::to_string(i)).c_str(), ("name " + std::to_string(i)).c_str()));
+  }
+  core.batch(adds);
+  for (int i = 0; i < 2990; i++) {
+    removes.push_back(NativeBatchOperation{-1, BatchTable(std::string("tasks")), "delete from tasks where id = ?", {{S(("m" + std::to_string(i)).c_str())}}});
+  }
+  core.batch(removes);
+  assert(std::holds_alternative<margelo::nitro::NullType>(core.find("tasks", "m0")));
+  assert(std::get<std::string>(core.find("tasks", "m2995")) == "m2995");
+  // 5000 rows x 2 cells cross the 4096-cell chunk boundary
+  auto big = core.unsafeQueryRaw("with recursive c(i) as (select 1 union all select i + 1 from c where i < 5000) select i, 'row number ' || i as s from c", {});
+  assert(big.data->rowCount == 5000 && big.data->cellCount() == 10000);
+  assert(big.data->cell(9998).kind == Kind::Number && big.data->cell(9998).number == 5000);
+  assert(str(*big.data, 4999, "s") == "row number 5000");
+  assert(str(*big.data, 0, "s") == "row number 1");
 
   assert(throws([&] { core.query("tasks", "select name from tasks where 0", {}); }));
 

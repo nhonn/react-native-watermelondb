@@ -24,9 +24,8 @@ namespace margelo::nitro::watermelondb { struct NativeReadCall; }
 #include <NitroModules/Promise.hpp>
 #include <string>
 #include <NitroModules/Null.hpp>
-#include <variant>
-#include <unordered_map>
 #include "RecordSetJSI.hpp"
+#include <variant>
 #include <vector>
 #include <optional>
 #include <tuple>
@@ -67,7 +66,7 @@ namespace margelo::nitro::watermelondb {
       virtual std::shared_ptr<Promise<InitializeResult>> initialize(double expectedVersion) = 0;
       virtual std::shared_ptr<Promise<void>> setUpWithSchema(const std::string& schemaSql, double schemaVersion) = 0;
       virtual std::shared_ptr<Promise<void>> setUpWithMigrations(const std::string& migrationSql, double fromVersion, double toVersion) = 0;
-      virtual std::shared_ptr<Promise<std::variant<nitro::NullType, std::string, std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>>>> find(const std::string& table, const std::string& id) = 0;
+      virtual std::shared_ptr<Promise<std::variant<nitro::NullType, std::string, ::watermelondb::FoundRecord>>> find(const std::string& table, const std::string& id) = 0;
       virtual std::shared_ptr<Promise<::watermelondb::RecordSet>> query(const std::string& table, const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
       virtual std::shared_ptr<Promise<std::vector<std::string>>> queryIds(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
       virtual std::shared_ptr<Promise<::watermelondb::RecordSet>> unsafeQueryRaw(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
@@ -81,7 +80,7 @@ namespace margelo::nitro::watermelondb {
       virtual InitializeResult initializeSync(double expectedVersion) = 0;
       virtual void setUpWithSchemaSync(const std::string& schemaSql, double schemaVersion) = 0;
       virtual void setUpWithMigrationsSync(const std::string& migrationSql, double fromVersion, double toVersion) = 0;
-      virtual std::variant<nitro::NullType, std::string, std::unordered_map<std::string, std::variant<nitro::NullType, bool, std::string, double>>> findSync(const std::string& table, const std::string& id) = 0;
+      virtual std::variant<nitro::NullType, std::string, ::watermelondb::FoundRecord> findSync(const std::string& table, const std::string& id) = 0;
       virtual ::watermelondb::RecordSet querySync(const std::string& table, const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
       virtual std::vector<std::string> queryIdsSync(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
       virtual ::watermelondb::RecordSet unsafeQueryRawSync(const std::string& sql, const std::vector<std::variant<nitro::NullType, bool, std::string, double>>& args) = 0;
