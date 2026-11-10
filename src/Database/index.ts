@@ -2,7 +2,6 @@ import type { Class } from '../types'
 import type { Observable } from '../utils/rx'
 import { startWith, merge as merge$ } from '../utils/rx'
 import type { Unsubscribe } from '../utils/subscriptions'
-import '../utils/subscriptions'
 import { invariant, logger } from '../utils/common'
 import {
  noop,

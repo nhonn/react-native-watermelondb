@@ -30,6 +30,7 @@ public:
   std::shared_ptr<Promise<std::variant<NullType, std::string>>> getLocal(const std::string& key) override;
   std::shared_ptr<Promise<void>> unsafeExecuteMultiple(const std::string& sql) override;
   std::shared_ptr<Promise<void>> unsafeResetDatabase(const std::string& schemaSql, double schemaVersion) override;
+  std::shared_ptr<Promise<void>> forget(const std::string& table, const std::vector<std::string>& ids) override;
   std::shared_ptr<Promise<std::vector<NativeReadResult>>> readMany(const std::vector<NativeReadCall>& calls) override;
 
   InitializeResult initializeSync(double expectedVersion) override;

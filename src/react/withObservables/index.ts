@@ -6,6 +6,7 @@ import type { Observable } from 'rxjs'
 import { Component, createElement } from 'react'
 import hoistNonReactStatics from '../../utils/hoistStatics'
 import type { NonReactStatics } from '../../utils/hoistStatics'
+import identicalArrays from '../../utils/fp/identicalArrays'
 import scheduleForCleanup from './garbageCollector'
 export interface ObservableConvertible<T> {
   observe(): Observable<T>
@@ -122,20 +123,6 @@ function subscribe(
   throw new Error(
     `[withObservable] Value passed to withObservables doesn't appear to be observable. See console for details`
   )
-}
-
-function identicalArrays<T, V extends T[]>(left: V, right: V): boolean {
-  if (left.length !== right.length) {
-    return false
-  }
-
-  for (let i = 0, len = left.length; i < len; i += 1) {
-    if (left[i] !== right[i]) {
-      return false
-    }
-  }
-
-  return true
 }
 
 function getTriggeringProps<PropsInput extends {}>(

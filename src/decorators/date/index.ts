@@ -1,7 +1,6 @@
 import type { Decorator } from '../../utils/common/makeDecorator'
 import makeDecorator from '../../utils/common/makeDecorator'
 import type { ColumnName } from '../../Schema'
-import '../../Schema'
 import { ensureDecoratorUsedProperly } from '../common'
 // Defines a model property representing a date
 //

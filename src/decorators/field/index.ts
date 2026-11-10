@@ -1,9 +1,7 @@
 import type { Decorator } from '../../utils/common/makeDecorator'
 import makeDecorator from '../../utils/common/makeDecorator'
 import type { Value } from '../../QueryDescription'
-import '../../QueryDescription'
 import type { ColumnName } from '../../Schema'
-import '../../Schema'
 import { ensureDecoratorUsedProperly } from '../common'
 // Defines a model property
 //

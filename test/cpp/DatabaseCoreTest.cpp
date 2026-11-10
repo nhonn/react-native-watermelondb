@@ -151,6 +151,11 @@ int main() {
   for (int i = 0; i < 300; i++) {
     core.queryIds("select id from tasks where name = 'n" + std::to_string(i) + "'", {});
   }
+
+  // a non-text 'id' must throw, not be read as text; the core stays usable
+  core.executeMultiple("create table ints (id integer primary key, name text); insert into ints values (1, 'x');");
+  assert(throws([&] { core.query("ints", "select * from ints", {}); }));
+  assert(throws([&] { core.query("ints", "select null as id", {}); }));
   assert(core.queryIds("select id from tasks where name = 'n0'", {}).empty());
   assert(std::get<std::string>(core.find("tasks", "b")) == "b");
 
@@ -171,6 +176,14 @@ int main() {
     cache.put("select 128", taken);
     assert(cache.take("select 128") == taken);
     cache.put("select 128", taken);
+
+    // statements with very long SQL are finalized instead of cached
+    const std::string longSql = "select 1 where 1 in (" + std::string(StatementCache::kMaxCachedSqlLength, '1') + ")";
+    sqlite3_stmt* longStmt = nullptr;
+    assert(sqlite3_prepare_v2(mem, longSql.c_str(), -1, &longStmt, nullptr) == SQLITE_OK);
+    cache.put(longSql, longStmt);
+    assert(cache.size() == StatementCache::kCapacity);
+    assert(cache.take(longSql) == nullptr);
   }
   sqlite3_close(mem);
 

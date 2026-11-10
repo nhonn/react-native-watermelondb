@@ -1,5 +1,4 @@
 import type { Decorator } from '../../utils/common/makeDecorator'
-import '../../utils/common/makeDecorator'
 import type { ColumnName, TableName } from '../../Schema'
 import relation from '../relation'
 

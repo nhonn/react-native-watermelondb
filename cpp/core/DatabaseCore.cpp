@@ -1,5 +1,6 @@
 #include "DatabaseCore.hpp"
 #include <cstdio>
+#include <mutex>
 #include <stdexcept>
 
 namespace watermelondb {
@@ -40,15 +41,18 @@ void DatabaseCore::open() {
   executeMultiple("pragma synchronous = NORMAL;");
   // Spilled sorts/indexes need a writable temp dir, and none of SQLite's defaults (/var/tmp, /tmp, ...) exist on Android.
   // Use the database directory so big ORDER BY/GROUP BY spill to disk; temp_store=memory kept them all in RAM.
-  // Process-wide and set by the first database opened; it must outlive SQLite, hence the static.
-  static const std::string tempDir = [this] {
+  // Process-wide and set once by the first database opened; it must outlive SQLite, hence the statics.
+  static std::string tempDir;
+  static std::once_flag tempDirOnce;
+  std::call_once(tempDirOnce, [this] {
     const size_t slash = _path.rfind('/');
-    return (slash == std::string::npos || slash == 0) ? std::string() : _path.substr(0, slash);
-  }();
+    tempDir = (slash == std::string::npos || slash == 0) ? std::string() : _path.substr(0, slash);
+    if (!tempDir.empty() && sqlite3_temp_directory == nullptr) {
+      sqlite3_temp_directory = const_cast<char*>(tempDir.c_str());
+    }
+  });
   if (tempDir.empty()) {
     executeMultiple("pragma temp_store = memory;");
-  } else if (sqlite3_temp_directory == nullptr) {
-    sqlite3_temp_directory = const_cast<char*>(tempDir.c_str());
   }
 #endif
   // mmap: reads skip the read() syscall + page copy (~2x faster point lookups on a 200k-row DB). An I/O error on a
@@ -147,7 +151,12 @@ void DatabaseCore::resetWithSchema(const std::string& schemaSql, int version) {
   if (sqlite3_db_config(db(), SQLITE_DBCONFIG_RESET_DATABASE, 1, 0) != SQLITE_OK) {
     throwDbError("Failed to enable database reset");
   }
-  execSimple("vacuum");
+  try {
+    execSimple("vacuum");
+  } catch (...) {
+    sqlite3_db_config(db(), SQLITE_DBCONFIG_RESET_DATABASE, 0, 0); // a left-on flag would make a later VACUUM wipe the DB
+    throw;
+  }
   sqlite3_db_config(db(), SQLITE_DBCONFIG_RESET_DATABASE, 0, 0);
 
   execSimple("begin exclusive transaction");
@@ -274,6 +283,9 @@ RecordSet DatabaseCore::query(const std::string& table, const std::string& sql, 
   while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
     if (!captured) {
       capture();
+    }
+    if (sqlite3_column_type(stmt, idColumn) != SQLITE_TEXT) {
+      throw std::runtime_error("Query returned a non-text 'id' column, sql: " + sql);
     }
     const std::string_view id(reinterpret_cast<const char*>(sqlite3_column_text(stmt, idColumn)),
                               static_cast<size_t>(sqlite3_column_bytes(stmt, idColumn)));

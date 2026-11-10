@@ -63,9 +63,13 @@ export default class Query<Record extends Model> {
   ))
  }
 
+ get _subscribableKey(): string {
+  return `query ${this._descriptionKey}`
+ }
+
  get _cachedSubscribable(): SharedSubscribable<Record[]> {
   return this.collection._getSharedSubscribable(
-   `query ${this._descriptionKey}`,
+   this._subscribableKey,
    (subscriber) => subscribeToQuery(this, subscriber)
   )
  }
@@ -77,9 +81,13 @@ export default class Query<Record extends Model> {
   )
  }
 
+ get _countThrottledSubscribableKey(): string {
+  return `countThrottled ${this._descriptionKey}`
+ }
+
  get _cachedCountThrottledSubscribable(): SharedSubscribable<number> {
   return this.collection._getSharedSubscribable(
-   `countThrottled ${this._descriptionKey}`,
+   this._countThrottledSubscribableKey,
    (subscriber) => subscribeToCount(this, true, subscriber)
   )
  }

@@ -75,6 +75,7 @@ namespace margelo::nitro::watermelondb {
       virtual std::shared_ptr<Promise<std::variant<nitro::NullType, std::string>>> getLocal(const std::string& key) = 0;
       virtual std::shared_ptr<Promise<void>> unsafeExecuteMultiple(const std::string& sql) = 0;
       virtual std::shared_ptr<Promise<void>> unsafeResetDatabase(const std::string& schemaSql, double schemaVersion) = 0;
+      virtual std::shared_ptr<Promise<void>> forget(const std::string& table, const std::vector<std::string>& ids) = 0;
       virtual std::shared_ptr<Promise<std::vector<NativeReadResult>>> readMany(const std::vector<NativeReadCall>& calls) = 0;
       virtual InitializeResult initializeSync(double expectedVersion) = 0;
       virtual void setUpWithSchemaSync(const std::string& schemaSql, double schemaVersion) = 0;

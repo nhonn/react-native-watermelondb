@@ -1,10 +1,8 @@
 import type { Database, RecordId, TableName, Model } from '..'
 import type { Where } from '../QueryDescription'
 import type { DirtyRaw } from '../RawRecord'
-import '../RawRecord'
 import type { SchemaVersion } from '../Schema'
 import type { MigrationSyncChanges } from '../Schema/migrations/getSyncChanges'
-import '../Schema/migrations/getSyncChanges'
 export type Timestamp = number
 export type SyncTableChangeSet = {
   created: DirtyRaw[]

@@ -1,7 +1,5 @@
 import type { Decorator } from '../../utils/common/makeDecorator'
-import '../../utils/common/makeDecorator'
 import type { ColumnName } from '../../Schema'
-import '../../Schema'
 import type Model from '../../Model'
 import { ensureDecoratorUsedProperly } from '../common'
 

@@ -2,15 +2,13 @@ import os from 'os'
 import * as fork from '../../src'
 import ForkSQLiteAdapter from '../../src/adapters/sqlite'
 
-jest.mock('../../src/adapters/sqlite/makeDispatcher', () =>
-  require('../node-sqlite/makeDispatcher')
-)
 jest.mock('@nozbe/watermelondb/adapters/sqlite/makeDispatcher', () =>
   require('./upstreamDispatcher')
 )
 
 const upstream: any = require('@nozbe/watermelondb')
-const UpstreamSQLiteAdapter = require('@nozbe/watermelondb/adapters/sqlite').default
+const UpstreamSQLiteAdapter =
+  require('@nozbe/watermelondb/adapters/sqlite').default
 
 type Impl = { name: 'fork' | 'upstream'; lib: any; Adapter: any }
 const impls: Impl[] = [
@@ -57,7 +55,7 @@ const open = async (impl: Impl, dbName: string): Promise<any> => {
 }
 
 const t = async (fn: () => Promise<void>): Promise<number> => {
-  ; (globalThis as any).gc?.()
+  ;(globalThis as any).gc?.()
   const s = performance.now()
   await fn()
   return performance.now() - s
@@ -75,7 +73,9 @@ const runOnce = async (impl: Impl): Promise<Record<string, number>> => {
   out['insert 10k (1 batch)'] = await t(() =>
     A.database.write(() =>
       A.database.batch(
-        ...Array.from({ length: N }, (_, i) => A.tasks.prepareCreateFromDirtyRaw(raw(i)))
+        ...Array.from({ length: N }, (_, i) =>
+          A.tasks.prepareCreateFromDirtyRaw(raw(i))
+        )
       )
     )
   )
@@ -148,15 +148,25 @@ const median = (xs: number[]): number => {
 
 it('fork vs upstream', async () => {
   for (const impl of impls) await runOnce(impl) // warm-up, discarded
-  const samples: Record<string, Record<string, number[]>> = { fork: {}, upstream: {} }
+  const samples: Record<string, Record<string, number[]>> = {
+    fork: {},
+    upstream: {},
+  }
   for (let r = 0; r < RUNS; r++) {
     for (const impl of impls) {
       const res = await runOnce(impl)
-      for (const [k, v] of Object.entries(res)) (samples[impl.name][k] ||= []).push(v)
+      for (const [k, v] of Object.entries(res))
+        (samples[impl.name][k] ||= []).push(v)
     }
   }
   const verdict = (x: number): string =>
-    x < 0.9 ? 'faster' : x <= 1.1 ? 'parity' : x <= 1.5 ? 'slower' : 'regression'
+    x < 0.9
+      ? 'faster'
+      : x <= 1.1
+        ? 'parity'
+        : x <= 1.5
+          ? 'slower'
+          : 'regression'
   const lines = [
     `node ${process.version}, ${os.cpus()[0].model}`,
     '',
@@ -166,7 +176,9 @@ it('fork vs upstream', async () => {
   for (const k of Object.keys(samples.fork)) {
     const f = median(samples.fork[k])
     const u = median(samples.upstream[k])
-    lines.push(`| ${k} | ${f.toFixed(1)} | ${u.toFixed(1)} | ${(f / u).toFixed(2)} | ${verdict(f / u)} |`)
+    lines.push(
+      `| ${k} | ${f.toFixed(1)} | ${u.toFixed(1)} | ${(f / u).toFixed(2)} | ${verdict(f / u)} |`
+    )
   }
   process.stdout.write(`\n${lines.join('\n')}\n`)
 })

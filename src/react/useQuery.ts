@@ -12,6 +12,7 @@ export default function useQuery<T extends Model>(query: Query<T>): T[] {
     () =>
       sharedStore<T[]>(
         () => query._cachedSubscribable,
+        () => query.collection._sharedSubscribables.get(query._subscribableKey),
         (cb) => query.collection._fetchQuery(query, cb),
         identicalArrays,
         EMPTY

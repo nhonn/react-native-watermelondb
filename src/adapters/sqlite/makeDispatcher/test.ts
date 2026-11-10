@@ -22,8 +22,10 @@ describe('SqliteNitroDispatcher (async)', () => {
     batch = Promise.withResolvers<void>()
     // every async method waits for the batch, like the serial native queue
     mockDb = {
-      batch: jest.fn(() => (log.push('batch'), batch.promise.then(() => { }))),
-      find: jest.fn(() => (log.push('find'), batch.promise.then(() => 'async'))),
+      batch: jest.fn(() => (log.push('batch'), batch.promise.then(() => {}))),
+      find: jest.fn(
+        () => (log.push('find'), batch.promise.then(() => 'async'))
+      ),
       findSync: jest.fn(() => 'sync'),
       readMany: jest.fn((calls: any[]) => {
         log.push(`readMany:${calls.map((c) => c.method).join(',')}`)
@@ -79,5 +81,48 @@ describe('SqliteNitroDispatcher (async)', () => {
     await setImmediate()
     // a failing read doesn't fail its neighbours
     expect(results).toEqual([undefined, ['select 1'], 'boom', 'x', undefined])
+  })
+
+  it('reports a synchronous native throw as an error and goes back to idle', async () => {
+    mockDb.batch = jest.fn(() => {
+      throw new Error('bad args')
+    })
+    const dispatcher = asyncDispatcher()
+    const results: any[] = []
+    const record = (result: any) =>
+      results.push(result.error ? result.error.message : result.value)
+
+    dispatcher.call('batch', [[]], record)
+    await setImmediate()
+    expect(results).toEqual(['bad args'])
+    expect((dispatcher as any)._pending).toBe(0)
+
+    dispatcher.call('find', ['t', 'a'], record) // idle again: no hop
+    expect(results).toEqual(['bad args', 'sync'])
+  })
+
+  it('reports a synchronous readMany throw to every coalesced read', async () => {
+    mockDb.readMany = jest.fn(() => {
+      throw new Error('bad args')
+    })
+    const dispatcher = asyncDispatcher()
+    const results: any[] = []
+    const record = (result: any) =>
+      results.push(result.error ? result.error.message : result.value)
+
+    dispatcher.call('batch', [[]], record)
+    dispatcher.call('query', ['t', 'select 1', []], record)
+    dispatcher.call('count', ['select 2', []], record)
+    await setImmediate()
+    expect(results).toEqual(['bad args', 'bad args'])
+    expect((dispatcher as any)._pending).toBe(1) // only the batch is still in flight
+
+    batch.resolve()
+    await setImmediate()
+    expect(results).toEqual(['bad args', 'bad args', undefined])
+    expect((dispatcher as any)._pending).toBe(0)
+
+    dispatcher.call('find', ['t', 'a'], record)
+    expect(results[3]).toBe('sync')
   })
 })

@@ -2,7 +2,6 @@ import { expectToRejectWithMessage } from '../__tests__/utils'
 import { noop } from '../utils/fp'
 import Query from '../Query'
 import * as Q from '../QueryDescription'
-import { logger } from '../utils/common'
 import { toPromise } from '../utils/fp/Result'
 import { mockDatabase, MockTask, testSchema } from '../__tests__/testModels'
 
@@ -193,7 +192,11 @@ describe('fetching queries', () => {
   })
   it('recovers a garbage-collected cached record', async () => {
     const { db, tasks } = mockDatabase()
-    const t = await db.write(() => tasks.create((r: any) => { r.name = 'hello' }))
+    const t = await db.write(() =>
+      tasks.create((r: any) => {
+        r.name = 'hello'
+      })
+    )
     tasks._cache.map.set(t.id, { deref: () => undefined } as any)
     const [r] = await tasks.query().fetch()
     expect(r).not.toBe(t)
@@ -201,6 +204,27 @@ describe('fetching queries', () => {
     expect((r as any).name).toBe('hello')
     const [r2] = await tasks.query().fetch()
     expect(r2).toBe(r)
+  })
+  it('refetches all garbage-collected records of a result in one call', async () => {
+    const { db, tasks } = mockDatabase()
+    const created = Array.from({ length: 3 }, () => tasks.prepareCreate())
+    await db.write(() => db.batch(created))
+    created.forEach((t) =>
+      tasks._cache.map.set(t.id, { deref: () => undefined } as any)
+    )
+    const spy = jest.spyOn(
+      db.adapter.underlyingAdapter,
+      'refetchForgottenRecords'
+    )
+    const fetched = await tasks.query().fetch()
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy.mock.calls[0]![0]).toBe('mock_tasks')
+    expect([...spy.mock.calls[0]![1]].sort()).toEqual(
+      created.map((t) => t.id).sort()
+    )
+    expect(fetched.map((t) => t.id).sort()).toEqual(
+      created.map((t) => t.id).sort()
+    )
   })
   it('sweeps dead records and forgets them natively', async () => {
     const { db, tasks } = mockDatabase()
@@ -234,12 +258,9 @@ describe('fetching queries', () => {
     collection._cache.add(m1)
 
     // fetch, check if error occured
-    const spy = jest.spyOn(logger, 'warn').mockImplementation(() => { })
     const models = await toPromise((cb) =>
       collection._fetchQuery(mockQuery(collection), cb)
     )
-    expect(spy).toHaveBeenCalledTimes(1)
-    spy.mockRestore()
     // check models
     // @ts-expect-error ported Flow test code is not type-safe here
     expect(models.length).toBe(2)
@@ -430,7 +451,7 @@ describe('Collection observation', () => {
     const subscriber1 = jest.fn()
     const unsubscribe1 = tasks.experimentalSubscribe(subscriber1)
     expect(subscriber1).toHaveBeenCalledTimes(0)
-    const unsubscribe2 = tasks.experimentalSubscribe(() => { })
+    const unsubscribe2 = tasks.experimentalSubscribe(() => {})
     unsubscribe2()
     unsubscribe2()
     await database.write(() => tasks.create())

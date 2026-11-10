@@ -39,6 +39,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const IGNORE_CACHE = 0
+// Rows per refetch query: well below SQLITE_MAX_VARIABLE_NUMBER
+const REFETCH_CHUNK = 500
 export default class SQLiteAdapter implements DatabaseAdapter {
   static adapterType: string = 'sqlite'
   schema: AppSchema
@@ -96,8 +98,8 @@ export default class SQLiteAdapter implements DatabaseAdapter {
       schema: this.schema,
       ...(this.migrations
         ? {
-          migrations: this.migrations,
-        }
+            migrations: this.migrations,
+          }
         : {}),
       synchronous: this._synchronous,
       ...options,
@@ -248,17 +250,32 @@ export default class SQLiteAdapter implements DatabaseAdapter {
   }
 
   forgetCachedRecords(table: TableName<any>, ids: RecordId[]): void {
-    this._dispatcher.callSync('forget', [table, ids])
+    this._dispatcher.call('forget', [table, ids], (result) => {
+      if (result.error) {
+        logger.error('[SQLite] Failed to forget cached records', result.error)
+      }
+    })
   }
 
-  // Sync even with `synchronous: false`, because RecordCache needs the row inside a query callback;
-  // the native mutex serializes it with queued work.
-  refetchForgottenRecord(table: TableName<any>, id: RecordId): RawRecord | null {
-    this.forgetCachedRecords(table, [id])
-    return sanitizeFindResult(
-      this._dispatcher.callSync('find', [table, id]),
-      this.schema.tables[table]
-    ) as RawRecord | null
+  // Sync even with `synchronous: false`, because RecordCache needs the rows inside a query callback;
+  // the native mutex serializes it with queued work. The sync forget must run before the read,
+  // so the rows come back as full objects instead of ids.
+  refetchForgottenRecords(table: TableName<any>, ids: RecordId[]): RawRecord[] {
+    validateTable(table, this.schema)
+    this._dispatcher.callSync('forget', [table, ids])
+    const records: RawRecord[] = []
+    for (let i = 0; i < ids.length; i += REFETCH_CHUNK) {
+      const chunk = ids.slice(i, i + REFETCH_CHUNK)
+      const rows = this._dispatcher.callSync('query', [
+        table,
+        `select * from "${table}" where id in (${chunk.map(() => '?').join(', ')})`,
+        chunk,
+      ])
+      records.push(
+        ...(sanitizeQueryResult(rows, this.schema.tables[table]) as RawRecord[])
+      )
+    }
+    return records
   }
 
   query(
@@ -376,9 +393,9 @@ export default class SQLiteAdapter implements DatabaseAdapter {
     if (process.env.NODE_ENV !== 'production') {
       invariant(
         operations &&
-        typeof operations === 'object' &&
-        Object.keys(operations).length === 1 &&
-        (Array.isArray(sqls) || typeof sqlString === 'string'),
+          typeof operations === 'object' &&
+          Object.keys(operations).length === 1 &&
+          (Array.isArray(sqls) || typeof sqlString === 'string'),
         "unsafeExecute expects an { sqls: [ [sql, [args..]], ... ] } or { sqlString: 'foo; bar' } object"
       )
     }

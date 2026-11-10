@@ -41,8 +41,8 @@ const mockCollection = Object.freeze({
     get: (table: any) =>
       table === 'projects'
         ? {
-          modelClass: MockProject,
-        }
+            modelClass: MockProject,
+          }
         : undefined,
   },
 })
@@ -305,12 +305,6 @@ describe('Query', () => {
     })
   })
   describe('fetching', () => {
-    it.skip(`can fetch query`, async () => {
-      // no test here - Collection._fetchQuery is tested
-    })
-    it.skip(`can fetch count`, async () => {
-      // no test here - Collection._fetchCount is tested
-    })
     it(`is thenable`, async () => {
       const { database, tasks } = mockDatabase()
       const queryAll = new Query(tasks, [])
@@ -503,7 +497,7 @@ describe('Query', () => {
     const o2 = jest.fn()
     const u1 = make().experimentalSubscribe(o1)
     const u2 = make().experimentalSubscribe(o2)
-    await tasks.database.adapter.getLocal("x")
+    await tasks.database.adapter.getLocal('x')
     expect(spy).toHaveBeenCalledTimes(1)
     expect(o1.mock.calls[0][0]).toBe(o2.mock.calls[0][0])
     u1()
@@ -530,7 +524,9 @@ describe('Query memoized getters', () => {
     expect(query._columnDependencies).not.toBeNull()
   })
   it('caches a null _columnDependencies', () => {
-    const query = new Query(mockCollection as any, [Q.unsafeSqlQuery('select * from mock_tasks')])
+    const query = new Query(mockCollection as any, [
+      Q.unsafeSqlQuery('select * from mock_tasks'),
+    ])
     expect(query._columnDependencies).toBeNull()
     expect((query as any)._columnDependenciesCache).toBeNull()
     expect(query._columnDependencies).toBeNull()

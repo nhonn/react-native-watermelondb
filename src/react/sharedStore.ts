@@ -9,6 +9,7 @@ export type SharedStore<T> = {
 // External store for useSyncExternalStore on top of a shared (per-collection, per-query) subscribable
 export default function sharedStore<T>(
   shared: () => SharedSubscribable<T>, // resolved at subscribe time so idle/recreated shareds are re-joined
+  peek: () => SharedSubscribable<T> | undefined, // existing shared, never creates one
   prefetch: (callback: ResultCallback<T>) => void,
   isEqual: (a: T, b: T) => boolean,
   initial: T
@@ -34,6 +35,12 @@ export default function sharedStore<T>(
     },
     getSnapshot() {
       if (!value && !prefetching) {
+        const existing = peek()
+        if (existing?._didEmit) {
+          // a live shared already has data: no need to hit the adapter again
+          value = { current: existing._lastValue }
+          return value.current
+        }
         prefetching = true
         // sync adapters answer inside this call: first render already has data, no empty frame
         prefetch((result) => {

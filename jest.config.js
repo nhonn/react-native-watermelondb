@@ -7,7 +7,8 @@ module.exports = {
   ],
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   moduleNameMapper: {
-    '^\\./makeDispatcher$': '<rootDir>/test/node-sqlite/makeDispatcher.ts',
+    '^react-native-nitro-modules$':
+      '<rootDir>/test/node-sqlite/nitroModules.ts',
   },
   restoreMocks: true,
   transform: {

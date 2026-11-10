@@ -1,7 +1,6 @@
 import { logError } from '../../utils/common'
 import identicalArrays from '../../utils/fp/identicalArrays'
 import type { Unsubscribe } from '../../utils/subscriptions'
-import '../../utils/subscriptions'
 import type Query from '../../Query'
 import type Model from '../../Model'
 import type { RecordId } from '../../Model'
@@ -43,26 +42,25 @@ export default function subscribeToQueryReloading<Record extends Model>(
 
     collection._fetchQuery(query, (result) => {
       fetching = false
-      if (refetch && !unsubscribed) {
-        refetch = false
-        reloadingObserverFetch() // this result is stale: don't emit it
-        return
-      }
+      const shouldRefetch = refetch && !unsubscribed
       refetch = false
+
       if (result.error) {
         logError(result.error.toString())
-        return
+      } else {
+        // emit even if stale, so continuous invalidation can't starve subscribers
+        const records = result.value
+        const shouldEmit =
+          !unsubscribed &&
+          (shouldEmitStatus ||
+            !previousRecords ||
+            !identicalArrays(records, previousRecords))
+        previousRecords = records
+        previousIds = null
+        if (shouldEmit) subscriber(records)
       }
 
-      const records = result.value
-      const shouldEmit =
-        !unsubscribed &&
-        (shouldEmitStatus ||
-          !previousRecords ||
-          !identicalArrays(records, previousRecords))
-      previousRecords = records
-      previousIds = null
-      if (shouldEmit) subscriber(records)
+      if (shouldRefetch && !unsubscribed) reloadingObserverFetch()
     })
   }
 

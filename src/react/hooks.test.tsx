@@ -89,4 +89,47 @@ describe('react hooks', () => {
     expect(names.length).toBe(before + 1)
     expect(names[names.length - 1]).toBe('b')
   })
+  it('useRecord catches a change made before its subscription is set up', async () => {
+    const { db, tasks } = mockDatabase()
+    const t1 = await db.write(() =>
+      tasks.create((t: any) => {
+        t.name = 'a'
+      })
+    )
+    const names: string[] = []
+    const Component = () => {
+      names.push((useRecord(t1) as any).name)
+      // layout effects run before the passive effect that subscribes
+      React.useLayoutEffect(() => {
+        ;(t1 as any)._raw.name = 'b'
+        t1._notifyChanged()
+      }, [])
+      return null
+    }
+    await TestRenderer.act(async () => {
+      TestRenderer.create(<Component />)
+    })
+    expect(names[names.length - 1]).toBe('b')
+  })
+  it('a second mount of a live query does not fetch again', async () => {
+    const { db, tasks } = mockDatabase()
+    await db.write(() =>
+      tasks.create((t: any) => {
+        t.isCompleted = true
+      })
+    )
+    const fetchQuery = jest.spyOn(tasks, '_fetchQuery')
+    const Component = () => {
+      useQuery(tasks.query(Q.where('is_completed', true)))
+      return null
+    }
+    await TestRenderer.act(async () => {
+      TestRenderer.create(<Component />)
+    })
+    const callsAfterFirstMount = fetchQuery.mock.calls.length
+    await TestRenderer.act(async () => {
+      TestRenderer.create(<Component />)
+    })
+    expect(fetchQuery).toHaveBeenCalledTimes(callsAfterFirstMount)
+  })
 })

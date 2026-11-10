@@ -608,12 +608,6 @@ describe('applyRemoteChanges', () => {
       })
     })
   })
-  it.skip(`doesn't destroy dependent objects`, async () => {
-    // TODO: Add this test when fast delete is implemented
-  })
-  it.skip('only emits one collection batch change', async () => {
-    // TODO: Implement and unskip test when batch change emissions are implemented
-  })
   it('rejects invalid records', async () => {
     const { database } = makeDatabase()
 

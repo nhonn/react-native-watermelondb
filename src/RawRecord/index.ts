@@ -2,9 +2,7 @@
 
 /* eslint-disable no-self-compare */
 import type { ColumnName, ColumnSchema, TableSchema } from '../Schema'
-import '../Schema'
 import type { RecordId, SyncStatus } from '../Model'
-import '../Model'
 import randomId from '../utils/common/randomId'
 // Raw object representing a model record, coming from an untrusted source
 // (disk, sync, user data). Before it can be used to create a Model instance

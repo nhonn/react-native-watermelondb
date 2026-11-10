@@ -5,7 +5,6 @@ import checkName from '../utils/fp/checkName'
 import type { ArrayOrSpreadFn } from '../utils/fp/arrayOrSpread'
 import fromArrayOrSpread from '../utils/fp/arrayOrSpread'
 import type { TableName, ColumnName } from '../Schema'
-import '../Schema'
 import type {
   NonNullValue,
   NonNullValues,

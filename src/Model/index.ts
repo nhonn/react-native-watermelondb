@@ -1,7 +1,6 @@
 import type { Observable } from '../utils/rx'
 import { BehaviorSubject } from '../utils/rx'
 import type { Unsubscribe } from '../utils/subscriptions'
-import '../utils/subscriptions'
 import logger from '../utils/common/logger'
 import invariant from '../utils/common/invariant'
 import ensureSync from '../utils/common/ensureSync'
@@ -442,6 +441,8 @@ export default class Model {
     return record
   }
 
+  _version: number = 0
+
   _subscribers: [(isDeleted: boolean) => void, any][] = []
 
   /**
@@ -466,6 +467,7 @@ export default class Model {
   }
 
   _notifyChanged(): void {
+    this._version += 1
     this.__changes?.next(this)
 
     this._subscribers.forEach(([subscriber]) => {
@@ -474,6 +476,7 @@ export default class Model {
   }
 
   _notifyDestroyed(): void {
+    this._version += 1
     this._getChanges().complete()
 
     this._subscribers.forEach(([subscriber]) => {

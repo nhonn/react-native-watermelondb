@@ -2,7 +2,6 @@
 import invariant from '../utils/common/invariant'
 import logger from '../utils/common/logger'
 import type { Result } from '../utils/fp/Result'
-import '../utils/fp/Result'
 import type { RecordId } from '../Model'
 import type { TableSchema, AppSchema, TableName } from '../Schema'
 import type {

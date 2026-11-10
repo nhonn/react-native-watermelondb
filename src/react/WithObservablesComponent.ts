@@ -6,7 +6,6 @@ import withObservables from './withObservables'
 import compose from './compose'
 import withHooks from './withHooks'
 import type { HOC } from './helpers'
-import './helpers'
 type ExportProps<ObservableProps> = {
   resetOn: any[]
   observables: ObservableProps

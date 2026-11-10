@@ -21,9 +21,9 @@ const paths = NitroModules.createHybridObject<DatabasePaths>('DatabasePaths')
 
 const resolveDatabasePath = (dbName: string): string =>
   dbName === '' ||
-    dbName === ':memory:' ||
-    dbName.startsWith('file:') ||
-    dbName.startsWith('/')
+  dbName === ':memory:' ||
+  dbName.startsWith('file:') ||
+  dbName.startsWith('/')
     ? dbName
     : `${paths.databaseDirectory}/${dbName}.db`
 
@@ -46,7 +46,10 @@ const READ_RESULT_KEY: Partial<
   getLocal: 'local',
 }
 
-const toReadCall = (name: SqliteDispatcherMethod, args: any[]): NativeReadCall => {
+const toReadCall = (
+  name: SqliteDispatcherMethod,
+  args: any[]
+): NativeReadCall => {
   const method = name as NativeReadMethod
   switch (method) {
     case 'find':
@@ -107,10 +110,7 @@ class SqliteNitroDispatcher implements SqliteDispatcher {
     callback: ResultCallback<any>
   ): void {
     // method calls (not detached references) keep `this` bound for Nitro
-    if (
-      this._synchronous ||
-      (this._pending === 0 && IDLE_SYNC_METHODS[name])
-    ) {
+    if (this._synchronous || (this._pending === 0 && IDLE_SYNC_METHODS[name])) {
       let value: unknown
       try {
         value = this.callSync(name, args)
@@ -137,18 +137,26 @@ class SqliteNitroDispatcher implements SqliteDispatcher {
     args: any[],
     callback: ResultCallback<any>
   ): void {
-    ; (this._db[name as Exclude<SqliteDispatcherMethod, 'forget'>] as (...a: any[]) => Promise<unknown>)
-      .apply(this._db, args)
-      .then(
-        (value) => {
-          this._pending--
-          callback({ value })
-        },
-        (error) => {
-          this._pending--
-          callback({ error })
-        }
+    // Nitro converts arguments synchronously and may throw: report it like an async failure
+    let promise: Promise<unknown>
+    try {
+      promise = (this._db[name] as (...a: any[]) => Promise<unknown>).apply(
+        this._db,
+        args
       )
+    } catch (error) {
+      promise = Promise.reject(error)
+    }
+    promise.then(
+      (value) => {
+        this._pending--
+        callback({ value })
+      },
+      (error) => {
+        this._pending--
+        callback({ error })
+      }
+    )
   }
 
   _flushReads(): void {
@@ -161,7 +169,15 @@ class SqliteNitroDispatcher implements SqliteDispatcher {
       this._callAsync(...reads[0]!)
       return
     }
-    this._db.readMany(reads.map(([name, args]) => toReadCall(name, args))).then(
+    let promise: Promise<NativeReadResult[]>
+    try {
+      promise = this._db.readMany(
+        reads.map(([name, args]) => toReadCall(name, args))
+      )
+    } catch (error) {
+      promise = Promise.reject(error) // see _callAsync
+    }
+    promise.then(
       (results) => {
         this._pending -= reads.length
         reads.forEach(([name, , callback], i) => {

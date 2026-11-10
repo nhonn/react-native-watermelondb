@@ -13,7 +13,6 @@ import type {
 } from '../../../QueryDescription'
 import * as Q from '../../../QueryDescription'
 import type { TableName, ColumnName } from '../../../Schema'
-import '../../../Schema'
 import encodeValue from '../encodeValue'
 import type { SQL, SQLiteArg } from '../index'
 
@@ -309,7 +308,9 @@ const encodeQueryUncached = (
   // TODO: Test if encoding a `select x.id from x` query speeds up queryIds() calls
   if (description.sql) {
     const { sql, values } = description.sql
-    return [sql, values]
+    const args: SQLiteArg[] = []
+    values.forEach((value) => bind(args, value))
+    return [sql, args]
   }
 
   const hasToManyJoins = associations.some(

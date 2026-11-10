@@ -1,5 +1,4 @@
 import type { Unsubscribe } from '../type'
-import '../type'
 import invariant from '../../common/invariant' // A subscribable that implements the equivalent of:
 // multicast(() => new ReplaySubject(1)) |> refCount Rx operation
 //

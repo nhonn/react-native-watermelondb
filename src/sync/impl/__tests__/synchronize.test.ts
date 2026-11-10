@@ -735,13 +735,4 @@ describe('synchronize', () => {
       is_completed: true,
     })
   })
-  it.skip(`can accept remote changes received during push`, async () => {
-    // TODO: future improvement?
-  })
-  it.skip(`can resolve push-time sync conflicts`, async () => {
-    // TODO: future improvement?
-  })
-  it.skip(`only emits one collection batch change`, async () => {
-    // TODO: unskip when batch change emissions are implemented
-  })
 })

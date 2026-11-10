@@ -1,6 +1,5 @@
 import type { Database, DirtyRaw } from '../..'
 import type { SyncPullArgs, SyncDatabaseChangeSet } from '../../sync'
-import '../../sync'
 export type DiagnoseSyncConsistencyOptions = {
   db: Database
 

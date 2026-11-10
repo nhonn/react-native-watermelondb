@@ -7,6 +7,10 @@ export default function useCount(query: Query<any>): number {
     () =>
       sharedStore<number>(
         () => query._cachedCountThrottledSubscribable,
+        () =>
+          query.collection._sharedSubscribables.get(
+            query._countThrottledSubscribableKey
+          ),
         (cb) => query.collection._fetchCount(query, cb),
         (a, b) => a === b,
         0

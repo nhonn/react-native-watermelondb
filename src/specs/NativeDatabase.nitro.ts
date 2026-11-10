@@ -30,6 +30,8 @@ export interface NativeDatabase extends HybridObject<{
   getLocal(key: string): Promise<LocalValue>
   unsafeExecuteMultiple(sql: string): Promise<void>
   unsafeResetDatabase(schemaSql: string, schemaVersion: number): Promise<void>
+  // drops ids from the native "cached in JS" set (models were garbage-collected)
+  forget(table: string, ids: string[]): Promise<void>
   // Several reads in one queue hop; each call fails independently (result.error).
   readMany(calls: NativeReadCall[]): Promise<NativeReadResult[]>
 
@@ -49,7 +51,7 @@ export interface NativeDatabase extends HybridObject<{
   batchSync(operations: NativeBatchOperation[]): void
   getLocalSync(key: string): LocalValue
   unsafeExecuteMultipleSync(sql: string): void
-  // sync only: drops ids from the native "cached in JS" set (models were garbage-collected)
+  // drops ids from the native "cached in JS" set (models were garbage-collected)
   forgetSync(table: string, ids: string[]): void
   unsafeResetDatabaseSync(schemaSql: string, schemaVersion: number): void
 }

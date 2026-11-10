@@ -210,26 +210,4 @@ describe('markLocalChangesAsSynced', () => {
     // no more changes
     expect(await fetchLocalChanges(database)).toEqual(emptyLocalChanges)
   })
-  // TODO: Unskip the test when batch collection emissions are implemented
-  it.skip('only emits one collection batch change', async () => {
-    const { database, projects } = makeDatabase()
-    const { pCreated1 } = await makeLocalChanges(database)
-    const localChanges = await fetchLocalChanges(database)
-    const projectsObserver = jest.fn()
-    projects.changes.subscribe(projectsObserver)
-    await markLocalChangesAsSynced(database, localChanges)
-    expect(projectsObserver).toHaveBeenCalledTimes(1)
-    expect(projectsObserver).toHaveBeenCalledWith([
-      {
-        type: 'created',
-        record: pCreated1,
-      }, // TODO: missing changes + changes in other collections
-    ])
-  })
-  it.skip(`doesn't send _status, _changed fields`, async () => {
-    // TODO: Future improvement
-  })
-  it.skip('only returns changed fields', async () => {
-    // TODO: Possible future improvement?
-  })
 })

@@ -8,6 +8,10 @@ const recordsToMarkAsSynced = (
   { changes, affectedRecords }: SyncLocalChanges,
   allRejectedIds: SyncRejectedIds
 ): Model[] => {
+  const recordsByKey = new Map<string, Model>()
+  affectedRecords.forEach((model) => {
+    recordsByKey.set(`${model.table}#${model.id}`, model)
+  })
   const syncedRecords: Model[] = []
   Object.keys(changes).forEach((table) => {
     const { created, updated } = changes[table as any]
@@ -15,9 +19,7 @@ const recordsToMarkAsSynced = (
     const rejectedIds = new Set(allRejectedIds[table as any])
     raws.forEach((raw) => {
       const { id } = raw
-      const record = affectedRecords.find(
-        (model) => model.id === id && model.table === table
-      )
+      const record = recordsByKey.get(`${table}#${id}`)
 
       if (!record) {
         logError(

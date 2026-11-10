@@ -12,10 +12,12 @@ namespace watermelondb {
 // Bounded LRU cache of prepared statements. Owns every statement it was given (finalizes on eviction/clear).
 // take() marks an entry borrowed (never handed out twice, never evicted) without reallocating; put() returns it.
 // clear() finalizes borrowed statements too: call it only while nothing is borrowed.
+// SQL longer than kMaxCachedSqlLength (e.g. inlined `oneOf` lists) is never cached: put() finalizes it, so it can't evict hot statements.
 class StatementCache final {
 public:
   // Batch uses insert/update/delete per table + find per table; a small bound would thrash apps with many tables.
   static constexpr size_t kCapacity = 128;
+  static constexpr size_t kMaxCachedSqlLength = 4096;
 
   StatementCache() = default;
   ~StatementCache() { clear(); }
@@ -34,6 +36,10 @@ public:
   }
 
   void put(const std::string& sql, sqlite3_stmt* stmt) {
+    if (sql.size() > kMaxCachedSqlLength) {
+      sqlite3_finalize(stmt);
+      return;
+    }
     auto it = _index.find(sql);
     if (it != _index.end()) {
       if (it->second->stmt == stmt) {

@@ -65,21 +65,27 @@ export default class RecordCache<Record extends Model> {
   }
 
   recordsFromQueryResult(result: CachedQueryResult): Record[] {
-    return result.map((res) => this.recordFromQueryResult(res))
+    const rebuilt = this._rebuildForgotten(this._forgottenIds(result))
+    return result.map((res) =>
+      typeof res === 'string'
+        ? (rebuilt.get(res) ?? this._live(res)!)
+        : this._modelForRaw(res)
+    )
   }
 
   recordFromQueryResult(result: RecordId | RawRecord): Record {
     if (typeof result === 'string') {
-      return this._cachedModelForId(result)
+      return this._live(result) ?? this._rebuildForgotten([result]).get(result)!
     }
 
     return this._modelForRaw(result)
   }
 
   rawRecordsFromQueryResult(results: CachedQueryResult): RawRecord[] {
+    const rebuilt = this._rebuildForgotten(this._forgottenIds(results))
     return results.map((res) => {
       if (typeof res === 'string') {
-        return this._cachedModelForId(res)._raw
+        return (rebuilt.get(res) ?? this._live(res)!)._raw
       }
 
       const cachedRecord = this._live(res.id)
@@ -87,39 +93,40 @@ export default class RecordCache<Record extends Model> {
     })
   }
 
-  _cachedModelForId(id: RecordId): Record {
-    const record = this._live(id)
-    if (record) return record
-
-    // The model was garbage-collected before a sweep told the adapter: re-read its row and rebuild it
-    const raw =
-      this._debugCollection.database.adapter.underlyingAdapter.refetchForgottenRecord(
-        this.tableName,
-        id
-      )
-    if (raw) return this._modelForRaw(raw, false)
-
-    // Reaching this branch indicates a WatermelonDB/adapter bug: the adapter said the record is
-    // cached in JS, but it doesn't exist at all
-    const message = `Record ID ${this.tableName}#${id} was sent over the bridge, but it's not cached`
-    logger.error(message)
-    throw new Error(message)
+  _forgottenIds(results: CachedQueryResult): RecordId[] {
+    const ids: RecordId[] = []
+    results.forEach((res) => {
+      if (typeof res === 'string' && !this._live(res)) ids.push(res)
+    })
+    return ids
   }
 
-  _modelForRaw(raw: RawRecord, warnIfCached: boolean = true): Record {
-    // Sanity check: is this already cached?
-    const cachedRecord = this._live(raw.id)
+  // The models were garbage-collected before a sweep told the adapter: re-read all their rows
+  // in one call and rebuild them. The returned map keeps the new models alive until the caller is done.
+  _rebuildForgotten(ids: RecordId[]): Map<RecordId, Record> {
+    const models = new Map<RecordId, Record>()
+    if (!ids.length) return models
 
-    if (cachedRecord) {
-      // This may legitimately happen if we previously got ID without a record and we cleared
-      // adapter-side cached record ID maps to recover
-      if (warnIfCached) {
-        logger.warn(
-          `Record ${this.tableName}#${cachedRecord.id} is cached, but full raw object was sent over the bridge`
-        )
-      }
-      return cachedRecord
-    }
+    this._debugCollection.database.adapter.underlyingAdapter
+      .refetchForgottenRecords(this.tableName, ids)
+      .forEach((raw) => models.set(raw.id, this._modelForRaw(raw)))
+
+    ids.forEach((id) => {
+      if (models.has(id)) return
+      // Reaching this branch indicates a WatermelonDB/adapter bug: the adapter said the record is
+      // cached in JS, but it doesn't exist at all
+      const message = `Record ID ${this.tableName}#${id} was sent over the bridge, but it's not cached`
+      logger.error(message)
+      throw new Error(message)
+    })
+    return models
+  }
+
+  _modelForRaw(raw: RawRecord): Record {
+    // This may legitimately happen if we previously got ID without a record and we cleared
+    // adapter-side cached record ID maps to recover
+    const cachedRecord = this._live(raw.id)
+    if (cachedRecord) return cachedRecord
 
     // Return new model
     const newRecord = this.recordInsantiator(raw)

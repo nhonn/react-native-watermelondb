@@ -1,8 +1,6 @@
 import { unnest } from '../../utils/fp'
 import type { SchemaMigrations, MigrationStep } from './index'
-import './index'
 import type { SchemaVersion } from '../index'
-import '../index'
 export function stepsForMigration({
   migrations: schemaMigrations,
   fromVersion,

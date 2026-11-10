@@ -1,7 +1,6 @@
 /* eslint-disable no-use-before-define */
 import type { $RE } from '../types'
 import type { TableName, ColumnName } from '../Schema'
-import '../Schema'
 export type NonNullValue = number | string | boolean
 export type NonNullValues = number[] | string[] | boolean[]
 export type Value = NonNullValue | null

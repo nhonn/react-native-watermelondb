@@ -103,11 +103,12 @@ describe('subscribeToQueryReloading', () => {
       return db.batch(project, m1, stale)
     })
     const callbacks: any[] = []
-    const spy = jest
-      .spyOn(tasks, '_fetchQuery')
-      .mockImplementation(((_q: any, cb: any) => {
-        callbacks.push(cb)
-      }) as any)
+    const spy = jest.spyOn(tasks, '_fetchQuery').mockImplementation(((
+      _q: any,
+      cb: any
+    ) => {
+      callbacks.push(cb)
+    }) as any)
     const observer = jest.fn()
     const unsubscribe = subscribeToQueryReloading(query, observer)
     callbacks[0]({ value: [] })
@@ -120,15 +121,124 @@ describe('subscribeToQueryReloading', () => {
     notify()
     expect(spy).toHaveBeenCalledTimes(2)
 
-    callbacks[1]({ value: [stale] }) // stale result: not emitted, one refetch
-    expect(observer).toHaveBeenCalledTimes(1)
+    callbacks[1]({ value: [stale] }) // stale result: emitted, then one refetch
+    expect(observer).toHaveBeenCalledTimes(2)
+    expect(observer).toHaveBeenLastCalledWith([stale])
     expect(spy).toHaveBeenCalledTimes(3)
 
     callbacks[2]({ value: [m1] })
-    expect(observer).toHaveBeenCalledTimes(2)
+    expect(observer).toHaveBeenCalledTimes(3)
     expect(observer).toHaveBeenLastCalledWith([m1])
     unsubscribe()
     spy.mockRestore()
+  })
+  it('emits intermediate results under continuous invalidation', async () => {
+    const { db, tasks, projects } = mockDatabase()
+    const query = tasks.query(
+      Q.where('is_completed', true),
+      Q.on('mock_projects', Q.where('name', 'hello'))
+    )
+    let project: any
+    await db.write(async () => {
+      project = projects.prepareCreateFromDirtyRaw({
+        id: 'MOCK_PROJECT',
+        name: 'hello',
+      })
+      await db.batch(project)
+    })
+    const callbacks: any[] = []
+    const spy = jest.spyOn(tasks, '_fetchQuery').mockImplementation(((
+      _q: any,
+      cb: any
+    ) => {
+      callbacks.push(cb)
+    }) as any)
+    const observer = jest.fn()
+    const unsubscribe = subscribeToQueryReloading(query, observer)
+    const notify = () =>
+      db._notify([['mock_projects', [{ record: project, type: 'updated' }]]])
+
+    const results = [
+      [{ id: 'r0' }],
+      [{ id: 'r1' }],
+      [{ id: 'r2' }],
+      [{ id: 'r3' }],
+    ]
+    for (let i = 0; i < 3; i++) {
+      notify() // invalidation arrives while fetch #i is in flight
+      callbacks[i]({ value: results[i] })
+      expect(observer).toHaveBeenCalledTimes(i + 1)
+      expect(observer).toHaveBeenLastCalledWith(results[i])
+      expect(spy).toHaveBeenCalledTimes(i + 2)
+    }
+    callbacks[3]({ value: results[3] }) // no more invalidations: latest result
+    expect(observer).toHaveBeenCalledTimes(4)
+    expect(observer).toHaveBeenLastCalledWith(results[3])
+    expect(spy).toHaveBeenCalledTimes(4)
+
+    unsubscribe()
+    spy.mockRestore()
+  })
+  it('does not emit after unsubscribe when refetch is pending', async () => {
+    const { db, tasks, projects } = mockDatabase()
+    const query = tasks.query(
+      Q.where('is_completed', true),
+      Q.on('mock_projects', Q.where('name', 'hello'))
+    )
+    let project: any
+    await db.write(async () => {
+      project = projects.prepareCreateFromDirtyRaw({
+        id: 'MOCK_PROJECT',
+        name: 'hello',
+      })
+      await db.batch(project)
+    })
+    const callbacks: any[] = []
+    const spy = jest.spyOn(tasks, '_fetchQuery').mockImplementation(((
+      _q: any,
+      cb: any
+    ) => {
+      callbacks.push(cb)
+    }) as any)
+    const observer = jest.fn()
+    const unsubscribe = subscribeToQueryReloading(query, observer)
+    db._notify([['mock_projects', [{ record: project, type: 'updated' }]]])
+    unsubscribe()
+    callbacks[0]({ value: [] })
+    expect(observer).not.toHaveBeenCalled()
+    expect(spy).toHaveBeenCalledTimes(1)
+    spy.mockRestore()
+  })
+  it('reloads on created matching record with sortBy + take', async () => {
+    const { db, tasks } = mockDatabase()
+    const spy = jest.spyOn(tasks, '_fetchQuery')
+    const [m1, m2] = await db.write(async () => [
+      await createTask(tasks, 'a', true),
+      await createTask(tasks, 'b', true),
+    ])
+    const observer = jest.fn()
+    const unsubscribe = subscribeToQueryReloading(
+      tasks.query(
+        Q.where('is_completed', true),
+        Q.sortBy('name', Q.asc),
+        Q.take(3)
+      ),
+      observer
+    )
+    const waitForNextQuery = () => tasks.database.adapter.getLocal('x')
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(observer).toHaveBeenLastCalledWith([m1, m2])
+
+    await db.write(() => createTask(tasks, 'd', false)) // non-matching
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    const m3 = await db.write(() => createTask(tasks, 'c', true)) // matching
+    await waitForNextQuery()
+    expect(spy).toHaveBeenCalledTimes(2)
+    expect(observer).toHaveBeenLastCalledWith([m1, m2, m3])
+    unsubscribe()
   })
   it('calls observer even if query is empty (regression test)', async () => {
     const { tasks } = mockDatabase()

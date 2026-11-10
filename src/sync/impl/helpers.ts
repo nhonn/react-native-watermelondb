@@ -79,7 +79,7 @@ export function requiresUpdate<T extends Model>(
 export const recordFromRaw = <T extends Model>(
   raw: RawRecord,
   collection: Collection<T>
-): T => collection._cache._modelForRaw(raw, false)
+): T => collection._cache._modelForRaw(raw)
 export function prepareUpdateFromRaw<T extends Model>(
   localRaw: RawRecord,
   remoteDirtyRaw: DirtyRaw,

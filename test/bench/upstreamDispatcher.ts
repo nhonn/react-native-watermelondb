@@ -1,11 +1,15 @@
-import { makeDispatcher as makeNodeDispatcher } from '../node-sqlite/makeDispatcher'
+import { makeDispatcher as makeNitroDispatcher } from '../../src/adapters/sqlite/makeDispatcher'
 import type {
   ResultCallback,
   SqliteDispatcherMethod,
 } from '../../src/adapters/sqlite/type'
 
 // upstream 0.28 passes dbName first to these; the fork's native API dropped it
-const DROPS_DB_NAME = new Set(['initialize', 'setUpWithSchema', 'setUpWithMigrations'])
+const DROPS_DB_NAME = new Set([
+  'initialize',
+  'setUpWithSchema',
+  'setUpWithMigrations',
+])
 
 export const getDispatcherType = (): string => 'asynchronous'
 
@@ -15,7 +19,7 @@ export const makeDispatcher = (
   dbName: string,
   options: { usesExclusiveLocking: boolean }
 ) => {
-  const inner = makeNodeDispatcher(dbName, {
+  const inner = makeNitroDispatcher(dbName, {
     usesExclusiveLocking: options.usesExclusiveLocking,
     synchronous: false,
   })
@@ -25,6 +29,10 @@ export const makeDispatcher = (
       args: any[],
       callback: ResultCallback<any>
     ): void =>
-      inner.call(name, DROPS_DB_NAME.has(name) ? args.slice(1) : args, callback),
+      inner.call(
+        name,
+        DROPS_DB_NAME.has(name) ? args.slice(1) : args,
+        callback
+      ),
   }
 }

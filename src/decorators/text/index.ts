@@ -2,7 +2,6 @@ import type { Decorator } from '../../utils/common/makeDecorator'
 import makeDecorator from '../../utils/common/makeDecorator'
 import { ensureDecoratorUsedProperly } from '../common'
 import type { ColumnName } from '../../Schema'
-import '../../Schema'
 // Defines a model property representing user-input text
 //
 // On set, all strings are trimmed (whitespace is removed from beginning/end)

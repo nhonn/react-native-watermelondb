@@ -56,37 +56,46 @@ std::shared_ptr<Promise<InitializeResult>> HybridNativeDatabase::initialize(doub
   return enqueue<InitializeResult>([expectedVersion](DatabaseCore& core) { return initializeCore(core, expectedVersion); });
 }
 
+// Nitro passes each argument as a non-const temporary converted from JS (HybridFunction::callMethod),
+// so moving out of it is safe and skips a deep copy (same as batch()/readMany() below).
+template <typename T> static T take(const T& value) {
+  return std::move(const_cast<T&>(value));
+}
+
 std::shared_ptr<Promise<void>> HybridNativeDatabase::setUpWithSchema(const std::string& schemaSql, double schemaVersion) {
-  return enqueue<void>([=](DatabaseCore& core) { core.resetWithSchema(schemaSql, static_cast<int>(schemaVersion)); });
+  return enqueue<void>([schemaSql = take(schemaSql), schemaVersion](DatabaseCore& core) { core.resetWithSchema(schemaSql, static_cast<int>(schemaVersion)); });
 }
 
 std::shared_ptr<Promise<void>> HybridNativeDatabase::setUpWithMigrations(const std::string& migrationSql, double fromVersion,
                                                                          double toVersion) {
-  return enqueue<void>([=](DatabaseCore& core) { core.migrate(migrationSql, static_cast<int>(fromVersion), static_cast<int>(toVersion)); });
+  return enqueue<void>([migrationSql = take(migrationSql), fromVersion, toVersion](DatabaseCore& core) {
+    core.migrate(migrationSql, static_cast<int>(fromVersion), static_cast<int>(toVersion));
+  });
 }
 
 std::shared_ptr<Promise<::watermelondb::FindResult>> HybridNativeDatabase::find(const std::string& table, const std::string& id) {
-  return enqueue<::watermelondb::FindResult>([=](DatabaseCore& core) { return core.find(table, id); });
+  return enqueue<::watermelondb::FindResult>([table = take(table), id = take(id)](DatabaseCore& core) { return core.find(table, id); });
 }
 
 std::shared_ptr<Promise<::watermelondb::RecordSet>>
 HybridNativeDatabase::query(const std::string& table, const std::string& sql, const std::vector<std::variant<NullType, bool, std::string, double>>& args) {
-  return enqueue<::watermelondb::RecordSet>([=](DatabaseCore& core) { return core.query(table, sql, args); });
+  return enqueue<::watermelondb::RecordSet>(
+      [table = take(table), sql = take(sql), args = take(args)](DatabaseCore& core) { return core.query(table, sql, args); });
 }
 
 std::shared_ptr<Promise<std::vector<std::string>>>
 HybridNativeDatabase::queryIds(const std::string& sql, const std::vector<std::variant<NullType, bool, std::string, double>>& args) {
-  return enqueue<std::vector<std::string>>([=](DatabaseCore& core) { return core.queryIds(sql, args); });
+  return enqueue<std::vector<std::string>>([sql = take(sql), args = take(args)](DatabaseCore& core) { return core.queryIds(sql, args); });
 }
 
 std::shared_ptr<Promise<::watermelondb::RecordSet>>
 HybridNativeDatabase::unsafeQueryRaw(const std::string& sql, const std::vector<std::variant<NullType, bool, std::string, double>>& args) {
-  return enqueue<::watermelondb::RecordSet>([=](DatabaseCore& core) { return core.unsafeQueryRaw(sql, args); });
+  return enqueue<::watermelondb::RecordSet>([sql = take(sql), args = take(args)](DatabaseCore& core) { return core.unsafeQueryRaw(sql, args); });
 }
 
 std::shared_ptr<Promise<double>> HybridNativeDatabase::count(const std::string& sql,
                                                               const std::vector<std::variant<NullType, bool, std::string, double>>& args) {
-  return enqueue<double>([=](DatabaseCore& core) { return core.count(sql, args); });
+  return enqueue<double>([sql = take(sql), args = take(args)](DatabaseCore& core) { return core.count(sql, args); });
 }
 
 std::shared_ptr<Promise<void>> HybridNativeDatabase::batch(
@@ -99,15 +108,19 @@ std::shared_ptr<Promise<void>> HybridNativeDatabase::batch(
 }
 
 std::shared_ptr<Promise<std::variant<NullType, std::string>>> HybridNativeDatabase::getLocal(const std::string& key) {
-  return enqueue<std::variant<NullType, std::string>>([=](DatabaseCore& core) { return core.getLocal(key); });
+  return enqueue<std::variant<NullType, std::string>>([key = take(key)](DatabaseCore& core) { return core.getLocal(key); });
 }
 
 std::shared_ptr<Promise<void>> HybridNativeDatabase::unsafeExecuteMultiple(const std::string& sql) {
-  return enqueue<void>([=](DatabaseCore& core) { core.executeMultiple(sql); });
+  return enqueue<void>([sql = take(sql)](DatabaseCore& core) { core.executeMultiple(sql); });
 }
 
 std::shared_ptr<Promise<void>> HybridNativeDatabase::unsafeResetDatabase(const std::string& schemaSql, double schemaVersion) {
-  return enqueue<void>([=](DatabaseCore& core) { core.resetWithSchema(schemaSql, static_cast<int>(schemaVersion)); });
+  return enqueue<void>([schemaSql = take(schemaSql), schemaVersion](DatabaseCore& core) { core.resetWithSchema(schemaSql, static_cast<int>(schemaVersion)); });
+}
+
+std::shared_ptr<Promise<void>> HybridNativeDatabase::forget(const std::string& table, const std::vector<std::string>& ids) {
+  return enqueue<void>([table = take(table), ids = take(ids)](DatabaseCore& core) { core.forget(table, ids); });
 }
 
 static const std::string& stringArg(const NativeReadCall& call) {

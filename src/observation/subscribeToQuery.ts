@@ -1,5 +1,4 @@
 import type { Unsubscribe } from '../utils/subscriptions'
-import '../utils/subscriptions'
 import type Query from '../Query'
 import type Model from '../Model'
 import subscribeToQueryReloading from './subscribeToQueryReloading'
