@@ -26,8 +26,9 @@ const sharedMemory = new Map<string, DatabaseSyncType>()
 const isMemory = (path: string): boolean =>
   path === ':memory:' || path.includes('mode=memory')
 
-const fixArgs = (args: Value[]): (string | number | null)[] =>
-  args.map((v) => (typeof v === 'boolean' ? (v ? 1 : 0) : v))
+// Node < 26 throws on `undefined` bindings (missing raw columns); newer Node binds NULL
+const fixArgs = (args: (Value | undefined)[]): (string | number | null)[] =>
+  args.map((v) => (typeof v === 'boolean' ? (v ? 1 : 0) : (v ?? null)))
 
 // node:sqlite errors come from another realm, so `instanceof Error` fails in the Jest sandbox
 const guard = <T>(block: () => T): T => {
