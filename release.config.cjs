@@ -50,7 +50,25 @@ module.exports = {
       },
     ],
     '@semantic-release/npm',
-    '@semantic-release/github',
+    [
+      '@semantic-release/github',
+      {
+        releaseBodyTemplate: [
+          '<%= nextRelease.notes %>',
+          '',
+          '### 📦 Packages',
+          '',
+          '| Registry | Package |',
+          '| --- | --- |',
+          '| npm | [react-native-watermelondb@<%= nextRelease.version %>](https://www.npmjs.com/package/react-native-watermelondb/v/<%= nextRelease.version %>) |',
+          '| GitHub Packages | [@nhonn/react-native-watermelondb@<%= nextRelease.version %>](https://github.com/nhonn/react-native-watermelondb/pkgs/npm/react-native-watermelondb) |',
+          '',
+          '```sh',
+          'npm install react-native-watermelondb@<%= nextRelease.version %>',
+          '```',
+        ].join('\n'),
+      },
+    ],
     [
       '@semantic-release/git',
       {

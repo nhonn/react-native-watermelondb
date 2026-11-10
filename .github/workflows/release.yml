@@ -23,6 +23,7 @@ jobs:
       issues: write
       pull-requests: write
       id-token: write
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,3 +68,21 @@ jobs:
           GIT_COMMITTER_NAME: github-actions[bot]
           GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: bun run release
+
+      # GitHub Packages requires a scope matching the repo owner, so the same
+      # build is re-published as @nhonn/react-native-watermelondb. semantic-release
+      # has already bumped package.json; skip when that version is already there.
+      - name: Publish to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/gh-packages.npmrc"
+          echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" > "$NPM_CONFIG_USERCONFIG"
+          npm pkg set name=@nhonn/react-native-watermelondb
+          npm pkg delete publishConfig.registry
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "$(npm view "@nhonn/react-native-watermelondb@${VERSION}" version --registry https://npm.pkg.github.com 2>/dev/null)" = "${VERSION}" ]; then
+            echo "Already published ${VERSION}"
+          else
+            npm publish --registry https://npm.pkg.github.com --access public
+          fi
