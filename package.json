@@ -21,7 +21,6 @@
     "release": "semantic-release",
     "build": "bun run typecheck && bob build",
     "codegen": "nitrogen --logLevel=\"debug\" && bun run build",
-    "postcodegen": "bun --cwd example pod",
     "test": "jest"
   },
   "keywords": [
@@ -49,9 +48,6 @@
     "!**/__tests__",
     "!**/*.map"
   ],
-  "workspaces": [
-    "example"
-  ],
   "repository": "https://github.com/nhonn/react-native-watermelondb.git",
   "author": "Noah Nguyen",
   "license": "MIT",
@@ -64,6 +60,7 @@
   "devDependencies": {
     "@babel/plugin-proposal-decorators": "^7",
     "@nozbe/watermelondb": "0.28.0",
+    "@react-native/babel-preset": "0.86.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@types/jest": "^29.5.12",
@@ -77,12 +74,12 @@
     "nitrogen": "0.37.1",
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
-    "rxjs": "^7.8.1",
     "react": "19.2.3",
     "react-native": "0.86.0",
     "react-native-builder-bob": "^0.40.18",
     "react-native-nitro-modules": "0.37.1",
     "react-test-renderer": "19.2.3",
+    "rxjs": "^7.8.1",
     "semantic-release": "^25.0.7",
     "typescript": "^6.0.3"
   },
