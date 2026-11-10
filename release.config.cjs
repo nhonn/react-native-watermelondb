@@ -16,7 +16,7 @@ const sortMap = Object.fromEntries(
  */
 module.exports = {
   branches: ['master'],
-  tagFormat: 'prod.${version}',
+  tagFormat: 'v${version}',
   plugins: [
     [
       '@semantic-release/commit-analyzer',
